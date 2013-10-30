@@ -1,0 +1,677 @@
+%decls %{
+#include <string>
+#include <list>
+#include <cstring>
+#include <cstdlib>
+#include <sstream>
+#include <cstddef>
+
+#include "Value.h"
+#include "Util.h"
+using namespace std;
+
+class Statement;
+typedef list<Statement *> StatementList;
+
+class Expression;
+typedef list<Expression *> ExpressionList;
+
+class VariableDef;
+typedef list<VariableDef *> VariableDefList;
+
+class ParameterDef;
+typedef list<ParameterDef *> ParameterDefList;
+
+class MethodDef;
+typedef list<MethodDef *> MethodDefList;
+
+class BlockStatement;
+void setStatementList(BlockStatement *block, StatementList *stList);
+void addStatement(BlockStatement *block, Statement *statement);
+
+typedef enum {
+	OpAdd,
+	OpSub,
+	OpMul,
+	OpDiv,
+	OpMod,
+	OpAnd,
+	OpOr,
+	OpNot,
+	OpGT,
+	OpLT,
+	OpGTE,
+	OpLTE,
+	OpEq,
+	OpNotEq,
+	OpRShift,
+	OpLShift,
+	OpRot
+} ExpressionOperator;
+
+typedef union {
+	int int_value;
+	bool bool_value;
+	char *string_value;
+} union_constants;
+
+
+/*** Typedefs for Decorated Nodes ***/
+class DecoratedExpression;
+typedef list<DecoratedExpression *> DecoratedExpressionList;
+
+class DecoratedStatement;
+typedef list<DecoratedStatement *> DecoratedStatementList;
+%}
+
+%{
+#include "decaf_tree.h"
+
+string OperatorToString(ExpressionOperator oper) {
+	switch (oper)
+	{
+		case OpAdd: return "+";
+		case OpSub: return "-";
+		case OpMul: return "*";
+		case OpDiv: return "/";
+		case OpMod: return "%";
+		case OpAnd: return "&&";
+		case OpOr: return "||";
+		case OpNot: return "!";
+		case OpGT: return ">";
+		case OpLT: return "<";
+		case OpGTE: return ">=";
+		case OpLTE: return "<=";
+		case OpEq: return "==";
+		case OpNotEq: return "!=";
+		case OpRShift: return ">>";
+		case OpLShift: return "<<";
+		case OpRot: return "rot";
+		default:
+				return "Unknown";
+	}
+}
+%}
+
+%option lang="C++"
+
+%node DNode %abstract %typedef
+
+%node MainNode DNode %abstract
+
+%node ClassDef MainNode = {
+    string name;
+    VariableDefList *field_def_list;
+    MethodDefList *method_def_list;
+}
+
+/****Definitions Tree****/
+%node Definition DNode %abstract
+
+%end %{
+void addFieldDef(ClassDef *classDef, VariableDef *field_def) {
+	if (classDef->field_def_list == 0)
+		classDef->field_def_list = new VariableDefList;
+	classDef->field_def_list->push_back(field_def);
+}
+
+void addMethod(ClassDef *classDef, MethodDef *method_def) {
+	if (classDef->method_def_list == 0)
+		classDef->method_def_list = new MethodDefList;
+	classDef->method_def_list->push_back(method_def);
+}
+%}
+
+%node VariableDef Definition = {
+	string variable_name;
+	int line;
+	int column;
+	%nocreate Type variable_type;
+	%nocreate bool is_array_def = {false};
+	%nocreate int array_dimension = {0};
+	%nocreate Expression* initial_value = {0};
+}
+
+%node ParameterDef Definition = {
+	string parameter_name;
+	Type parameter_type;
+}
+
+%node MethodDef Definition = {
+	string method_name;
+	%nocreate Type method_return_type;
+	%nocreate ParameterDefList *method_parameters;
+	%nocreate Statement *method_body;
+}
+/*=========================*/
+
+/****Expressions Tree****/
+%node Expression DNode %abstract
+
+%node BinaryExpression Expression = {
+	Expression *left;
+	Expression *right;
+	ExpressionOperator  expression_operator;
+}
+%node UnaryExpression Expression = {
+	Expression *expression;
+	ExpressionOperator  expression_operator;
+}
+%node LValueExpression Expression = {
+	string variable_name;
+	Expression *array_index;
+}
+%node MethodCallExpression Expression = {
+	string method_name;
+	ExpressionList *method_arguments;
+}
+%node IntConstantExpression Expression = {
+	%nocreate Type constant_type = {Int};
+	int int_value;
+}
+
+%node RealConstantExpression Expression = {
+	%nocreate Type constant_type = {Real};
+	float float_value;
+}
+
+%node BooleanConstantExpression Expression = {
+	%nocreate Type constant_type = {Boolean};
+	bool bool_value;
+}
+
+%node StringConstantExpression Expression = {
+	%nocreate Type constant_type = {String};
+	char *string_value;
+}
+/*=========================*/
+
+/****Statements Tree****/
+%node Statement DNode %abstract = {
+	int line;
+	int column;
+}
+%node AssignmentStatement Statement = {
+	Expression *lvalue;
+	Expression *expr;
+}
+%node MethodCallStatement Statement = {
+	string name;
+	ExpressionList *arguments;
+}
+%node IfStatement Statement = {
+	Expression *condition;
+	Statement *true_part;
+	Statement *false_part;
+}
+%node WhileStatement Statement = {
+	Expression *condition;
+	Statement *loop_body;
+}
+%node ForStatement Statement = {
+	Statement *assignment_list1;
+	Expression *condition;
+	Statement *assignment_list2;
+	Statement *loop_body;
+}
+%node ReturnStatement Statement = {
+	Expression *expr;
+}
+%node BreakStatement Statement
+%node ContinueStatement Statement
+%node BlockStatement Statement = {
+	%nocreate StatementList *statement_list = {0};
+}
+
+%end %{
+void setStatementList(BlockStatement *block, StatementList *stList) {
+	block->statement_list = stList;
+}
+
+void addStatement(BlockStatement *block, Statement *statement) {
+	if (block->statement_list == 0)
+		block->statement_list = new StatementList;
+
+	block->statement_list->push_back(statement);
+}
+%}
+/*=====================================================================*/
+
+%operation %virtual string toString(DNode *this)
+
+toString(ClassDef) {
+	ostringstream out;
+
+	out << "class " << name << "\n";
+	out << "{" << "\n";
+
+	if (field_def_list != 0)
+		out << ListToString(field_def_list, ";\n", true) << "\n";
+
+	if (method_def_list != 0)
+		out << ListToString(method_def_list, "\n\n", true);
+
+	out << "}" << endl;
+
+	return out.str();
+}
+
+toString(VariableDef) {
+	ostringstream out;
+
+	out << "//Linea: " << line << ": Columna: " << column << endl;
+	out << TypeToString(variable_type) << " " << variable_name;
+
+	if (is_array_def)
+		out << "[" << array_dimension << "]";
+
+	if (initial_value != 0)
+		out << " = " + initial_value->toString();
+
+	return out.str();
+}
+
+toString(ParameterDef) {
+	return TypeToString(parameter_type) + " " + parameter_name;
+}
+
+toString(MethodDef) {
+	ostringstream out;
+
+	out << TypeToString(method_return_type) << " " << method_name << "(";
+	if (method_parameters != 0)
+		out << ListToString(method_parameters, ", ", false);
+	out << ")" << endl;
+	out << method_body->toString() << endl;
+
+	return out.str();
+}
+
+toString(BinaryExpression) {
+    ostringstream out;
+    
+    out << left->toString() << OperatorToString(expression_operator) << right->toString();
+    
+    return out.str();
+}
+
+toString(UnaryExpression) {
+    ostringstream out;
+    
+    out << OperatorToString(expression_operator) << expression->toString();
+    
+    return out.str();
+}
+
+toString(LValueExpression) {
+	ostringstream out;
+
+	out << this->variable_name;
+
+	if (array_index != 0)
+		out << "[" << array_index->toString() << "]";
+
+	return out.str();
+}
+
+toString(MethodCallExpression) {
+	ostringstream out;
+
+	out << this->method_name << "(" << ListToString(method_arguments, ", ", false) << ")";
+
+	return out.str();
+}
+
+toString(IntConstantExpression) {
+	ostringstream out;
+
+	out << int_value ;
+	return out.str();
+}
+
+toString(RealConstantExpression) {
+	ostringstream out;
+
+	out << float_value;
+	return out.str();
+}
+
+toString(BooleanConstantExpression) {
+	ostringstream out;
+
+	out << bool_value;
+	return out.str();
+}
+
+toString(StringConstantExpression) {
+	ostringstream out;
+
+	out << string_value;
+	return out.str();
+}
+
+/* toString for statement */
+toString(AssignmentStatement) {
+	ostringstream out;
+
+	out << "// Linea " << line << " Columna " << column << "\n"; 
+	out << lvalue->toString() << " = " << expr->toString() << ";";
+
+	return out.str();
+}
+
+toString(MethodCallStatement) {
+	return this->name + "(" + ListToString(arguments, ", ", false) + ");";
+}
+
+toString(IfStatement) {
+	ostringstream out;
+
+	out << "if (" << condition->toString() << ")" << endl;
+	out << true_part->toString() << endl;
+
+	if (false_part != 0) {
+		out << "else" << endl;
+		out << false_part->toString() << endl;
+	}
+
+	return out.str();
+}
+
+toString(WhileStatement) {
+	ostringstream out;
+
+	out << "while (" << condition->toString() << ")" << endl;
+	out << "{" << loop_body->toString() << endl << "}";
+
+	return out.str();
+}
+
+toString(ForStatement) {
+	ostringstream out;
+
+	out << "for (" << assignment_list1->toString();
+	out << ";" << condition->toString();
+	out << ";" << assignment_list2->toString();
+	out << "{" << endl << loop_body->toString() << endl << "}";
+
+	return out.str();
+}
+
+toString(ReturnStatement) {
+	ostringstream out;
+	
+	out << "return ";
+	if (expr != NULL) {
+		out << expr->toString();
+	}
+	out << ";";
+	
+	return out.str();
+}
+
+toString(BreakStatement) {
+	return "break;";
+}
+
+toString(ContinueStatement) {
+	return "continue;";
+}
+
+toString(BlockStatement) {
+	ostringstream out;
+
+	out << "{" << endl;
+
+	if (statement_list != 0)
+		out << ListToString(statement_list, "\n", true);
+
+	out << "}";
+
+	return out.str();
+}
+
+/*=====================================================================*/
+%operation %virtual void validateSemantics(DNode *this)
+/*%operation %virtual DecoratedNode validateSemantics(DNode *this)*/
+
+/*** Validate Semantics for Expressions ***/
+/*=====================================================================*/
+validateSemantics(ClassDef) {
+    list<VariableDef*>::iterator variable_iterator = field_def_list->begin();
+    
+    while(variable_iterator != field_def_list->end()) {
+        VariableDef * field_def = *variable_iterator;
+        field_def->registerDefinition();
+        variable_iterator++;
+    }
+    
+    list<MethodDef*>::iterator method_iterator = method_def_list->begin();
+    
+    while(method_iterator != method_def_list->end()) {
+        MethodDef * method_def = *method_iterator;
+        method_def->registerDefinition();
+        method_iterator++;
+    }
+}
+
+validateSemantics(BinaryExpression) {
+    left->validateSemantics();
+    right->validateSemantics();
+    
+    /*TODO: decidir type mismatch luego cuando no sea void*/
+}
+
+validateSemantics(UnaryExpression) {
+    expression->validateSemantics();
+    
+    /*TODO: decidir type mismatch luego cuando no sea void*/    
+}
+
+validateSemantics(LValueExpression) {
+    array_index->validateSemantics();
+    
+    /*TODO: instanciar el nuevo nodo decorado*/
+}
+
+validateSemantics(MethodCallExpression) {
+    list<Expression*>::iterator expression_iterator = method_arguments->begin();
+    
+    while (expression_iterator != method_arguments->end()) {
+        Expression *expression = *expression_iterator;
+        expression->validateSemantics();
+        
+        expression_iterator++;
+    }
+}
+
+validateSemantics(IntConstantExpression) {
+    /*TODO: instancia el nuevo nodo decorado*/
+}
+
+validateSemantics(RealConstantExpression) {
+    /*TODO: instancia el nuevo nodo decorado*/
+}
+
+validateSemantics(BooleanConstantExpression) {
+    /*TODO: instancia el nuevo nodo decorado*/
+}
+
+validateSemantics(StringConstantExpression) {
+    /*TODO: instancia el nuevo nodo decorado*/
+}
+
+/*** Validate Semantics for Statements ***/
+/*=====================================================================*/
+validateSemantics(AssignmentStatement) {
+    lvalue->validateSemantics();
+    expr->validateSemantics();
+}
+
+validateSemantics(MethodCallStatement) {
+    list<Expression*>::iterator expression_iterator = arguments->begin();
+    
+    while (expression_iterator != arguments->end()) {
+        Expression *expression = *expression_iterator;
+        expression->validateSemantics();
+        
+        expression_iterator++;
+    }
+}
+
+validateSemantics(IfStatement) {
+    condition->validateSemantics();
+    true_part->validateSemantics();
+    
+    if (false_part != NULL)
+        false_part->validateSemantics();
+}
+
+validateSemantics(WhileStatement) {
+    condition->validateSemantics();
+    loop_body->validateSemantics();
+}
+
+validateSemantics(ForStatement) {
+    assignment_list1->validateSemantics();
+    condition->validateSemantics();
+    assignment_list2->validateSemantics();
+    loop_body->validateSemantics();
+}
+
+validateSemantics(ReturnStatement) {
+    if (expr != NULL)
+        expr->validateSemantics();
+    /*TODO: instancia el nuevo nodo decorado*/
+}
+
+validateSemantics(BreakStatement) {
+    /*TODO: instancia el nuevo nodo decorado*/
+}
+
+validateSemantics(ContinueStatement) {
+    /*TODO: instancia el nuevo nodo decorado*/
+}
+
+validateSemantics(BlockStatement) {
+    list<Statement*>::iterator statement_iterator = statement_list->begin();
+    
+    while (statement_iterator != statement_list->end()) {
+        Statement *statement = *statement_iterator;
+        statement->validateSemantics();
+        
+        statement_iterator++;
+    }
+}
+
+validateSemantics(VariableDef) {
+    /* DO NOTHING */
+}
+
+validateSemantics(ParameterDef) {
+    /* DO NOTHING */
+}
+
+validateSemantics(MethodDef) {
+    /* DO NOTHING */
+}
+
+
+/*=====================================================================*/
+%operation %virtual void registerDefinition(Definition *this)
+
+registerDefinition(MethodDef) {
+
+}
+
+registerDefinition(VariableDef) {
+
+}
+
+registerDefinition(ParameterDef) {
+
+}
+
+/*=====================================================================*/
+/*** Classes for Decorated Nodes ***/
+/*=====================================================================*/
+
+%node DecoratedNode %abstract %typedef
+/*=====================================================================*/
+/*** Decorated Expressions Tree ***/
+%node DecoratedExpression DecoratedNode %abstract
+
+%node DecoratedBinaryExpression DecoratedExpression %abstract = {
+    DecoratedExpression *left;
+    DecoratedExpression *right;
+}
+
+%node DecoratedAddExpression DecoratedBinaryExpression
+%node DecoratedSubExpression DecoratedBinaryExpression
+%node DecoratedMultExpression DecoratedBinaryExpression
+%node DecoratedDivExpression DecoratedBinaryExpression
+%node DecoratedModExpression DecoratedBinaryExpression
+%node DecoratedAndExpression DecoratedBinaryExpression
+%node DecoratedOrExpression DecoratedBinaryExpression
+%node DecoratedGTExpression DecoratedBinaryExpression
+%node DecoratedLTExpression DecoratedBinaryExpression
+%node DecoratedGTEExpression DecoratedBinaryExpression
+%node DecoratedLTEExpression DecoratedBinaryExpression
+%node DecoratedEqExpression DecoratedBinaryExpression
+%node DecoratedNotEqExpression DecoratedBinaryExpression
+%node DecoratedRShiftExpression DecoratedBinaryExpression
+%node DecoratedLShiftExpression DecoratedBinaryExpression
+%node DecoratedRotExpression DecoratedBinaryExpression
+
+%node DecoratedUnaryExpression DecoratedExpression %abstract = {
+    DecoratedExpression *expression;
+}
+
+%node DecoratedNotExpression DecoratedUnaryExpression
+%node DecoratedNegExpression DecoratedUnaryExpression
+
+/*=====================================================================*/
+/*** Decorated Statements Tree ***/
+%node DecoratedStatement DecoratedNode %abstract
+
+%node DecoratedAssignmentStatement DecoratedStatement = {
+    DecoratedExpression *lvalue;
+    DecoratedExpression *value;
+}
+
+%node DecoratedMethodCallStatement DecoratedStatement = {
+    int                     method_index;
+    DecoratedExpressionList *arguments;
+}
+
+%node DecoratedIfStatement DecoratedStatement = {
+    DecoratedExpression *condition;
+    DecoratedStatement  *true_part;
+    DecoratedStatement  *false_part;
+}
+
+%node DecoratedWhileStatement DecoratedStatement = {
+    DecoratedExpression *condition;
+    DecoratedStatement  *loop_body;
+}
+
+%node DecoratedForStatement DecoratedStatement = {
+    DecoratedStatement  *assignment_list1;
+    DecoratedExpression *condition;
+    DecoratedStatement  *assignment_list2;
+    DecoratedStatement  *loop_body;
+}
+
+%node DecoratedReturnStatement DecoratedStatement = {
+    DecoratedExpression *expression;
+}
+
+%node DecoratedBreakStatement DecoratedStatement
+%node DecoratedContinueStatement DecoratedStatement
+
+%node DecoratedBlockStatement DecoratedStatement = {
+    %nocreate DecoratedStatementList  *statement_list = {0};
+}
+
+/*=====================================================================*/
+/*** Operations for Statement Tree ***/
