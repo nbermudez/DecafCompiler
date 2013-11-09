@@ -1,0 +1,115 @@
+/*=====================================================================*/
+/********************* Classes for Expression Types ********************/
+/*=====================================================================*/
+
+%node ExpressionType %abstract %typedef
+/*=====================================================================*/
+%node FloatType ExpressionType
+%node StringType ExpressionType
+%node IntegerType ExpressionType
+%node BooleanType ExpressionType
+/*=====================================================================*/
+%operation %virtual bool isEquivalent([ExpressionType *this], ExpressionType *secondType)
+
+isEquivalent(FloatType){
+    FloatType *casted_to_float = dynamic_cast<FloatType*>(secondType);
+    if (casted_to_float != NULL) {
+        return true;
+    } else {
+        IntegerType *casted_to_int = dynamic_cast<IntegerType*>(secondType);
+        if (casted_to_int != NULL) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
+isEquivalent(IntegerType){
+    FloatType *casted_to_float = dynamic_cast<FloatType*>(secondType);
+    if (casted_to_float != NULL) {
+        return true;
+    } else {
+        IntegerType *casted_to_int = dynamic_cast<IntegerType*>(secondType);
+        if (casted_to_int != NULL) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
+isEquivalent(StringType){
+    StringType *casted_to_string = dynamic_cast<StringType*>(secondType);
+    if (casted_to_string != NULL) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+isEquivalent(BooleanType){
+    BooleanType *casted_to_boolean = dynamic_cast<BooleanType*>(secondType);
+    if (casted_to_boolean != NULL) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+/*=====================================================================*/
+%operation %virtual bool isNumeric(ExpressionType *this)
+
+isNumeric(FloatType) {
+    return true;
+}
+
+isNumeric(IntegerType) {
+    return true;
+}
+
+isNumeric(BooleanType) {
+    return false;
+}
+
+isNumeric(StringType) {
+    return false;
+}
+
+/*=====================================================================*/
+%operation %virtual bool isBoolean(ExpressionType *this)
+
+isBoolean(FloatType) {
+    return false;
+}
+
+isBoolean(IntegerType) {
+    return false;
+}
+
+isBoolean(BooleanType) {
+    return true;
+}
+
+isBoolean(StringType) {
+    return false;
+}
+
+/*=====================================================================*/
+%operation %virtual string stringValue(ExpressionType *this)
+
+stringValue(FloatType) {
+    return "float";
+}
+
+stringValue(IntegerType) {
+    return "integer";
+}
+
+stringValue(BooleanType) {
+    return "boolean";
+}
+
+stringValue(StringType) {
+    return "string";
+}

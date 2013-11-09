@@ -3,8 +3,9 @@ DECAF_GRAMMAR	:= decaf_grammar.cpp
 DECAF_TOKENS	:= decaf_tokens.h
 DECAF_TREE_DEF	:= decaf_tree.tc
 DECAF_TREE	:= decaf_tree.cpp
+
 TARGET  := decaf
-SRCS    := ${DECAF_TREE} ${DECAF_LEXER} ${DECAF_GRAMMAR} Util.cpp main.cpp
+SRCS    := ${DECAF_TREE} ${DECAF_LEXER} ${DECAF_GRAMMAR} Util.cpp error_handler.cpp register_manager.cpp label_manager.cpp main.cpp
 OBJS    := ${SRCS:.cpp=.o} 
 
 CCFLAGS = -fpermissive -g

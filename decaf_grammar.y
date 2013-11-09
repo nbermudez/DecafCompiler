@@ -236,7 +236,7 @@ assign	:
 
 method_call:
 		method_name '(' opt_method_call_argument_list ')'	{ $$ = new MethodCallStatement(@1.first_line, @1.first_column, $1, $3); }	
-		| K_PRINT print_argument_list				{ $$ = new MethodCallStatement(@1.first_line, @1.first_column, "print", $2); }
+		| K_PRINT print_argument_list				{ $$ = new PrintStatement(@1.first_line, @1.first_column, $2); }
 		| K_READ read_argument_list				{ $$ = new MethodCallStatement(@1.first_line, @1.first_column, "read", $2); }
 ;
 

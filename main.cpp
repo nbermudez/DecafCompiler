@@ -36,6 +36,15 @@ int main(int argc, char *argv[])
 
 	if (errors == 0) {
 		cout << class_def->toString() << endl;
+        
+        DecoratedNode *decorated_class = class_def->validateSemantics();
+        if (ErrorHandler::getInstance().getErrorCount() > 0) {
+			cout << ErrorHandler::getInstance().allErrors();
+        } else {
+        	cout << "generating code..." << endl;
+        	cout << decorated_class->generateCode(0);
+        }
+        
 	}
 
 	return 0;

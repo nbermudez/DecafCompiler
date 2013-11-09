@@ -1,0 +1,626 @@
+%{
+    #include "data_layout/register_utils.h"
+    #include "label_manager.h"
+
+    string indent(int count) {
+        ostringstream out;
+        out << string(count, '\t');
+        return "";
+        //return out.str();
+    }
+%}
+
+/*=====================================================================*/
+/********************* Classes for Decorated Nodes *********************/
+/*=====================================================================*/
+%node DecoratedNode %abstract %typedef
+/*=====================================================================*/
+/*** Decorated Class ***/
+%node DecoratedClass DecoratedNode = {
+    string name;
+    %nocreate DecoratedBlockStatement *main = {NULL};
+}
+/*=====================================================================*/
+/*** Decorated Expressions Tree ***/
+%node DecoratedExpression DecoratedNode %abstract = {
+    ExpressionType  *type;
+    %nocreate string place = {""};
+}
+
+%node DecoratedBinaryExpression DecoratedExpression %abstract = {
+    DecoratedExpression *left;
+    DecoratedExpression *right;
+}
+
+%node DecoratedAddExpression DecoratedBinaryExpression
+%node DecoratedSubExpression DecoratedBinaryExpression
+%node DecoratedMultExpression DecoratedBinaryExpression
+%node DecoratedDivExpression DecoratedBinaryExpression
+%node DecoratedModExpression DecoratedBinaryExpression
+%node DecoratedAndExpression DecoratedBinaryExpression
+%node DecoratedOrExpression DecoratedBinaryExpression
+%node DecoratedGTExpression DecoratedBinaryExpression
+%node DecoratedLTExpression DecoratedBinaryExpression
+%node DecoratedGTEExpression DecoratedBinaryExpression
+%node DecoratedLTEExpression DecoratedBinaryExpression
+%node DecoratedEqExpression DecoratedBinaryExpression
+%node DecoratedNotEqExpression DecoratedBinaryExpression
+%node DecoratedRShiftExpression DecoratedBinaryExpression
+%node DecoratedLShiftExpression DecoratedBinaryExpression
+%node DecoratedRotExpression DecoratedBinaryExpression
+
+%node DecoratedUnaryExpression DecoratedExpression %abstract = {
+    DecoratedExpression *expression;
+}
+
+%node DecoratedNotExpression DecoratedUnaryExpression
+%node DecoratedNegExpression DecoratedUnaryExpression
+
+%node DecoratedConstant DecoratedExpression %abstract
+%node DecoratedBooleanConstant DecoratedConstant = {
+    bool value;
+}
+
+%node DecoratedIntConstant DecoratedConstant = {
+    int value;
+}
+
+%node DecoratedStringConstant DecoratedConstant = {
+    string value;
+}
+
+%node DecoratedLValue DecoratedExpression = {
+    string variable_name;
+    DecoratedExpression *array_index;
+}
+
+%node DecoratedMethodCallExpression DecoratedExpression = {
+    string name;
+    DecoratedExpressionList *arguments;
+}
+
+/*=====================================================================*/
+/************** Decorated Statements Tree **************/
+%node DecoratedStatement DecoratedNode %abstract
+
+%node DecoratedAssignmentStatement DecoratedStatement = {
+    DecoratedLValue *lvalue;
+    DecoratedExpression *value;
+}
+
+%node DecoratedMethodCallStatement DecoratedStatement = {
+    %nocreate int                     method_index = {0};
+    DecoratedExpressionList *arguments;
+}
+
+%node DecoratedIfStatement DecoratedStatement = {
+    DecoratedExpression *condition;
+    DecoratedStatement  *true_part;
+    DecoratedStatement  *false_part;
+}
+
+%node DecoratedWhileStatement DecoratedStatement = {
+    DecoratedExpression *condition;
+    DecoratedStatement  *loop_body;
+}
+
+%node DecoratedForStatement DecoratedStatement = {
+    DecoratedStatement  *assignment_list1;
+    DecoratedExpression *condition;
+    DecoratedStatement  *assignment_list2;
+    DecoratedStatement  *loop_body;
+}
+
+%node DecoratedReturnStatement DecoratedStatement = {
+    DecoratedExpression *expression;
+}
+
+%node DecoratedBreakStatement DecoratedStatement
+%node DecoratedContinueStatement DecoratedStatement
+
+%node DecoratedBlockStatement DecoratedStatement = {
+    DecoratedStatementList  *statement_list;
+}
+
+/*=====================================================================*/
+/*** Operations for Statement Tree ***/
+%operation %virtual string generateCode([DecoratedNode *this], int indentLevel)
+
+generateCode(DecoratedAddExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "add " << reg << ", " <<left->place << ", " << right->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedSubExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "sub " << reg << ", " <<left->place << ", " << right->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedMultExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "mul " << reg << ", " <<left->place << ", " << right->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedDivExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "div " << reg << ", " <<left->place << ", " << right->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedModExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "rem " << reg << ", " <<left->place << ", " << right->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedAndExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "and " << reg << ", " <<left->place << ", " << right->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedOrExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "or " << reg << ", " <<left->place << ", " << right->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedGTExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "slt " << reg << ", " <<right->place << ", " << left->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedLTExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "slt " << reg << ", " <<left->place << ", " << right->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedGTEExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "sle " << reg << ", " <<right->place << ", " << left->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedLTEExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "sle " << reg << ", " <<left->place << ", " << right->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedEqExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "seq " << reg << ", " <<left->place << ", " << right->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedNotEqExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "sne " << reg << ", " <<left->place << ", " << right->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedRShiftExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "sarv " << reg << ", " <<left->place << ", " << right->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedLShiftExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    string reg_neg;
+    reg_neg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "sub " << reg_neg << ", $zero, " << right->place << endl;
+    out << indent(indentLevel) << "sarv " << reg << ", " <<left->place << ", " << reg_neg << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedRotExpression) {
+    ostringstream out;
+    
+    out << left->generateCode(indentLevel + 1);
+    out << right->generateCode(indentLevel + 1);
+    
+    freeRegister(left->place);
+    freeRegister(right->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "ror " << reg << ", " <<left->place << ", " << right->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedNotExpression) {
+    ostringstream out;
+    
+    out << expression->generateCode(indentLevel + 1);
+    
+    freeRegister(expression->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "seq " << reg << ", $zero, " << expression->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedNegExpression) {
+    ostringstream out;
+    
+    out << expression->generateCode(indentLevel + 1);
+    
+    freeRegister(expression->place);
+    
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+    
+    out << indent(indentLevel) << "sub " << reg << ", $zero, " << expression->place << endl;
+    this->place = reg;
+    
+    return out.str();
+}
+
+generateCode(DecoratedBooleanConstant) {
+    ostringstream out;
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+
+    if (value) {
+        out << indent(indentLevel) << "li " << reg << ", 1" << endl; 
+    } else {
+        out << indent(indentLevel) << "li " << reg << ", 0" << endl;
+    }
+    this->place = reg;
+
+    return out.str();
+}
+
+generateCode(DecoratedIntConstant) {
+    ostringstream out;
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+
+    out << indent(indentLevel) << "li " << reg << ", " << value;
+    this->place = reg;
+
+    return out.str();
+}
+
+generateCode(DecoratedStringConstant) {
+    
+}
+
+generateCode(DecoratedLValue) {
+    ostringstream out;
+
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+
+    out << indent(indentLevel) << "la " << reg << ", " << variable_name << endl;
+    if (array_index != NULL) {
+        out << indent(indentLevel) << "add " << reg << ", " << reg << ", " << array_index->place << endl;
+    }
+    out << indent(indentLevel) << "sw " << reg << ", 0(" << reg << ")" << endl;
+    this->place =  reg;
+
+    return out.str();
+}
+
+generateCode(DecoratedMethodCallExpression) {
+    ostringstream out;
+
+    list<DecoratedExpression*>::iterator it = arguments->begin();
+    int argc = 0;
+    while (it != arguments->end()) {
+        if (argc < 5) {
+            //usar $a0...$a4
+        } else {
+            //poner en la pila
+        }
+        it++;
+    }
+    out << indent(indentLevel) << "jal " << name << endl;
+    
+    this->place = "$v0";
+
+    return out.str();
+}
+
+/*************************************************************/
+generateCode(DecoratedAssignmentStatement) {
+    ostringstream out;
+
+    out << lvalue->getLocation(indentLevel + 1);
+    out << value->generateCode(indentLevel + 1);
+    out << indent(indentLevel) << "sw " << value->place << ", 0(" << lvalue->place << ")" << endl;
+
+    return out.str();
+}
+
+generateCode(DecoratedMethodCallStatement) {
+    ostringstream out;
+
+    return out.str();
+}
+
+generateCode(DecoratedIfStatement) {
+    ostringstream out;
+
+    out << condition->generateCode(indentLevel);
+
+    string elseLabel;
+    elseLabel = LabelManager::getInstance().getElseLabel();
+
+    out << indent(indentLevel) << "beq " << condition->place << ", $zero, " << elseLabel << endl;
+    out << true_part->generateCode(indentLevel + 1) << endl;
+    out << indent(indentLevel) << elseLabel << ":" << endl;
+    if (false_part != NULL) {
+        out << false_part->generateCode(indentLevel + 1) << endl;
+    }
+
+    return out.str();
+}
+
+generateCode(DecoratedWhileStatement) {
+    ostringstream out;
+
+    return out.str();
+}
+
+generateCode(DecoratedForStatement) {
+    ostringstream out;
+
+    return out.str();
+}
+
+generateCode(DecoratedReturnStatement) {
+    ostringstream out;
+    if (expression != NULL) {
+        out << expression->generateCode(indentLevel + 1);
+    }
+    return out.str();
+}
+
+generateCode(DecoratedBreakStatement) {
+    ostringstream out;
+
+    return out.str();
+}
+
+generateCode(DecoratedContinueStatement) {
+    ostringstream out;
+
+    return out.str();
+}
+
+generateCode(DecoratedBlockStatement) {
+    ostringstream out;
+
+    list<DecoratedStatement*>::iterator it = statement_list->begin();
+
+    while (it != statement_list->end()) {
+        out << (*it)->generateCode(indentLevel + 1);
+
+        it++;
+    }
+
+    return out.str();
+}
+/*************************************************************/
+generateCode(DecoratedClass) {
+    ostringstream out;
+
+    out << this->name << ":" << endl;
+    out << indent(indentLevel) << "main: " << endl;
+    if (main != NULL) {
+        out << indent(indentLevel) << main->generateCode(indentLevel + 1) << endl;
+    }
+    return out.str();
+}
+/*************************************************************/
+%operation %virtual string getLocation([DecoratedLValue *this], int indentLevel);
+
+getLocation(DecoratedLValue) {
+    ostringstream out;
+
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+
+    out << indent(indentLevel) << "la " << reg << ", " << variable_name << endl;
+    if (array_index != NULL) {
+        out << indent(indentLevel) << "add " << reg << ", " << reg << ", " << array_index->place << endl;
+    }
+    this->place =  reg;
+
+    return out.str();
+}

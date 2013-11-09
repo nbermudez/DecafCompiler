@@ -8,6 +8,8 @@
 
 #include "Value.h"
 #include "Util.h"
+#include "error_handler.h"
+#include "register_manager.h"
 using namespace std;
 
 class Statement;
@@ -92,6 +94,9 @@ string OperatorToString(ExpressionOperator oper) {
 	}
 }
 %}
+
+%header "decaf_tree.h"
+%output "decaf_tree.cpp"
 
 %option lang="C++"
 
@@ -222,6 +227,9 @@ void addMethod(ClassDef *classDef, MethodDef *method_def) {
 %node BlockStatement Statement = {
 	%nocreate StatementList *statement_list = {0};
 }
+%node PrintStatement Statement = {
+	ExpressionList *arguments;
+}
 
 %end %{
 void setStatementList(BlockStatement *block, StatementList *stList) {
@@ -237,7 +245,7 @@ void addStatement(BlockStatement *block, Statement *statement) {
 %}
 /*=====================================================================*/
 
-%operation %virtual string toString(DNode *this)
+%operation %virtual string toString(DNode *this);
 
 toString(ClassDef) {
 	ostringstream out;
@@ -431,9 +439,14 @@ toString(BlockStatement) {
 	return out.str();
 }
 
+toString(PrintStatement) {
+	return  "print (" + ListToString(arguments, ", ", false) + ");";
+}
+
+%include "decaf_types.tc"
+
 /*=====================================================================*/
-%operation %virtual void validateSemantics(DNode *this)
-/*%operation %virtual DecoratedNode validateSemantics(DNode *this)*/
+%operation %virtual DecoratedNode* validateSemantics(DNode *this);
 
 /*** Validate Semantics for Expressions ***/
 /*=====================================================================*/
@@ -453,74 +466,262 @@ validateSemantics(ClassDef) {
         method_def->registerDefinition();
         method_iterator++;
     }
+    
+    /************ Check method bodies. ************/
+    method_iterator = method_def_list->begin();
+    DecoratedBlockStatement *main_block = NULL;
+    while(method_iterator != method_def_list->end()) {
+        MethodDef * method_def = *method_iterator;
+        if (method_def->method_name == "main") {
+        	main_block = method_def->checkBody();
+        } else {
+        	method_def->checkBody();
+        }
+        method_iterator++;
+    }
+
+    DecoratedClass *decorated_class = new DecoratedClass(this->name);
+    decorated_class->main = main_block;
+    
+    return decorated_class;
 }
 
 validateSemantics(BinaryExpression) {
-    left->validateSemantics();
-    right->validateSemantics();
+    cout << "validating binary expression semantics" << endl;
     
-    /*TODO: decidir type mismatch luego cuando no sea void*/
-}
-
-validateSemantics(UnaryExpression) {
-    expression->validateSemantics();
+    DecoratedExpression *dLeft = (DecoratedExpression*)(left->validateSemantics());
+    DecoratedExpression *dRight = (DecoratedExpression*)(right->validateSemantics());
     
-    /*TODO: decidir type mismatch luego cuando no sea void*/    
-}
-
-validateSemantics(LValueExpression) {
-    array_index->validateSemantics();
+    if (dLeft == NULL || dRight == NULL)
+        return NULL;
     
-    /*TODO: instanciar el nuevo nodo decorado*/
-}
-
-validateSemantics(MethodCallExpression) {
-    list<Expression*>::iterator expression_iterator = method_arguments->begin();
+    if (!dLeft->type->isEquivalent(dRight->type)) {
+        ErrorHandler::getInstance().handleError("type mismatch for operator " + 
+                                                OperatorToString(expression_operator) +
+                                                " for types " + dLeft->type->stringValue() +
+                                                " and " + dRight->type->stringValue());
+        cout << dLeft->type->stringValue() << " not equivalent to" << dRight->type->stringValue() << endl;
+        return NULL;
+    }
+    cout << "before testing string type" << endl;
+    if (dynamic_cast<StringType*>(dLeft->type) != NULL) {
+        ErrorHandler::getInstance().handleError("type mismatch for operator " + 
+                                                OperatorToString(expression_operator) +
+                                                " for types " + dLeft->type->stringValue() +
+                                                " and " + dRight->type->stringValue());
+        return NULL;
+    }
     
-    while (expression_iterator != method_arguments->end()) {
-        Expression *expression = *expression_iterator;
-        expression->validateSemantics();
+    ExpressionType      *type;
+    
+    cout << "operator " << OperatorToString(expression_operator) << endl;
+    
+    if (dynamic_cast<FloatType*>(dLeft->type) != NULL
+        || dynamic_cast<FloatType*>(dRight->type) != NULL) {
         
-        expression_iterator++;
+        type = new FloatType();
+        cout << "left side is float " << endl;
+    }
+    if (dynamic_cast<BooleanType*>(dLeft->type) != NULL) {
+        type = new BooleanType();
+        
+        cout << "left side is boolean " << endl;
+    }
+    if (dynamic_cast<IntegerType*>(dLeft->type) != NULL) {
+        type = new IntegerType();
+        
+        cout << "left side is integer " << endl;
+    }
+    
+    
+    switch(expression_operator) {
+        case OpAdd:
+            if (type->isNumeric())
+                return new DecoratedAddExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpSub:
+            if (type->isNumeric())
+                return new DecoratedSubExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpMul:
+            if (type->isNumeric())
+                return new DecoratedMultExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpDiv:
+            if (type->isNumeric())
+                return new DecoratedDivExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpMod:
+            if (type->isNumeric())
+                return new DecoratedModExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpAnd:
+            if (type->isBoolean())
+                return new DecoratedAndExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpOr:
+            if (type->isBoolean())
+                return new DecoratedOrExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpGT:
+            if (type->isBoolean())
+                return new DecoratedGTExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpLT:
+            if (type->isBoolean())
+                return new DecoratedLTExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpGTE:
+            if (type->isBoolean())
+                return new DecoratedGTEExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpLTE:
+            if (type->isBoolean())
+                return new DecoratedLTEExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpEq:
+            if (type->isBoolean())
+                return new DecoratedEqExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpNotEq:
+            if (type->isBoolean())
+                return new DecoratedNotEqExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpRShift:
+            if (type->isNumeric())
+                return new DecoratedRShiftExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpLShift:
+            if (type->isNumeric())
+                return new DecoratedLShiftExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        case OpRot:
+            if (type->isNumeric())
+                return new DecoratedRotExpression(type, dLeft, dRight);
+            else
+                return NULL;
+        default:
+            return NULL;
     }
 }
 
+validateSemantics(UnaryExpression) {
+    DecoratedExpression *dExpression = (DecoratedExpression*)expression->validateSemantics();
+    
+    if (dExpression == NULL)
+        return NULL;
+        
+    ExpressionType  *type;
+    
+    switch(expression_operator) {
+        case OpSub:
+            if (dExpression->type->isNumeric())
+                return new DecoratedNegExpression(dExpression->type, dExpression);
+            else
+                return NULL;
+        case OpNot:
+            if (dExpression->type->isBoolean())
+                return new DecoratedNotExpression(dExpression->type, dExpression);
+            else
+                return NULL;
+        default:
+            return NULL;
+    }
+}
+
+validateSemantics(LValueExpression) {
+    cout << "validating lvalue semantics " << endl;
+    DecoratedExpression *d_array_index = NULL;
+    if (array_index != NULL)
+        d_array_index = (DecoratedExpression*)array_index->validateSemantics();
+    return new DecoratedLValue(new IntegerType(), variable_name, d_array_index);
+}
+
+validateSemantics(MethodCallExpression) {
+    cout << "validating method call expression " << endl;
+    list<Expression*>::iterator expression_iterator = method_arguments->begin();
+    
+    cout << "parameters: " << endl;
+    DecoratedExpressionList *d_arguments = new DecoratedExpressionList;
+
+    while (expression_iterator != method_arguments->end()) {
+        Expression *expression = *expression_iterator;
+        DecoratedExpression *d_expr = (DecoratedExpression*)expression->validateSemantics();
+        d_arguments->push_back(d_expr);
+        
+        expression_iterator++;
+    }
+
+    return new DecoratedMethodCallExpression(new IntegerType(), method_name, d_arguments);
+}
+
 validateSemantics(IntConstantExpression) {
-    /*TODO: instancia el nuevo nodo decorado*/
+    cout << "validating int constant semantics " << endl;
+    return new DecoratedIntConstant(new IntegerType(), int_value);
 }
 
 validateSemantics(RealConstantExpression) {
+    cout << "validating real constant semantics " << endl;
     /*TODO: instancia el nuevo nodo decorado*/
 }
 
 validateSemantics(BooleanConstantExpression) {
-    /*TODO: instancia el nuevo nodo decorado*/
+    cout << "validating boolean constant semantics " << endl;
+    return new DecoratedBooleanConstant(new BooleanType(), bool_value);
 }
 
 validateSemantics(StringConstantExpression) {
+    cout << "validating string constant semantics " << endl;
     /*TODO: instancia el nuevo nodo decorado*/
 }
 
 /*** Validate Semantics for Statements ***/
 /*=====================================================================*/
 validateSemantics(AssignmentStatement) {
-    lvalue->validateSemantics();
-    expr->validateSemantics();
+    cout << "validating assignment statement semantics" << endl;
+    DecoratedLValue *d_lvalue = (DecoratedLValue*)lvalue->validateSemantics();
+    cout << "after lvalue semantics" << endl;
+    DecoratedExpression *d_expr = (DecoratedExpression*)expr->validateSemantics();
+
+    return new DecoratedAssignmentStatement(d_lvalue, d_expr);
 }
 
 validateSemantics(MethodCallStatement) {
     list<Expression*>::iterator expression_iterator = arguments->begin();
     
+    DecoratedExpressionList *d_arguments = new DecoratedExpressionList;
     while (expression_iterator != arguments->end()) {
         Expression *expression = *expression_iterator;
-        expression->validateSemantics();
+        DecoratedExpression *d_expr = (DecoratedExpression*)expression->validateSemantics();
+
+        d_arguments->push_back(d_expr);
         
         expression_iterator++;
     }
+
+    return new DecoratedMethodCallStatement(d_arguments);
 }
 
 validateSemantics(IfStatement) {
+    cout << "validating if statement semantics " << endl;
     condition->validateSemantics();
+    
+    cout << "validateSemantics if true part " << endl;
     true_part->validateSemantics();
     
     if (false_part != NULL)
@@ -533,52 +734,81 @@ validateSemantics(WhileStatement) {
 }
 
 validateSemantics(ForStatement) {
-    assignment_list1->validateSemantics();
+    DecoratedStatement *d_assignment_list1 = (DecoratedStatement*)assignment_list1->validateSemantics();
     condition->validateSemantics();
     assignment_list2->validateSemantics();
     loop_body->validateSemantics();
 }
 
 validateSemantics(ReturnStatement) {
-    if (expr != NULL)
-        expr->validateSemantics();
-    /*TODO: instancia el nuevo nodo decorado*/
+    cout << "validating return statement semantics " << endl;
+    DecoratedExpression *decorated_expression = NULL;
+    if (expr != NULL) {
+        decorated_expression = (DecoratedExpression*)expr->validateSemantics();
+    }
+    return new DecoratedReturnStatement(decorated_expression);
 }
 
 validateSemantics(BreakStatement) {
     /*TODO: instancia el nuevo nodo decorado*/
+    return new DecoratedBreakStatement();
 }
 
 validateSemantics(ContinueStatement) {
     /*TODO: instancia el nuevo nodo decorado*/
+    return new DecoratedContinueStatement();
 }
 
 validateSemantics(BlockStatement) {
     list<Statement*>::iterator statement_iterator = statement_list->begin();
     
+    DecoratedStatementList  *decorated_statement_list = new DecoratedStatementList;
+    
     while (statement_iterator != statement_list->end()) {
         Statement *statement = *statement_iterator;
-        statement->validateSemantics();
+        DecoratedStatement *decorated_statement =  (DecoratedStatement*)statement->validateSemantics();
+        decorated_statement_list->push_back(decorated_statement);
         
         statement_iterator++;
     }
+    
+    return new DecoratedBlockStatement(decorated_statement_list);
+}
+
+validateSemantics(PrintStatement) {
+	list<Expression*>::iterator expression_iterator = arguments->begin();
+    
+    DecoratedExpressionList *d_arguments = new DecoratedExpressionList;
+    while (expression_iterator != arguments->end()) {
+        Expression *expression = *expression_iterator;
+        DecoratedExpression *d_expr = (DecoratedExpression*)expression->validateSemantics();
+
+        d_arguments->push_back(d_expr);
+        
+        expression_iterator++;
+    }
+
+    return new DecoratedMethodCallStatement(d_arguments);
 }
 
 validateSemantics(VariableDef) {
     /* DO NOTHING */
+    return NULL;
 }
 
 validateSemantics(ParameterDef) {
     /* DO NOTHING */
+    return NULL;
 }
 
 validateSemantics(MethodDef) {
     /* DO NOTHING */
+    return NULL;
 }
 
 
 /*=====================================================================*/
-%operation %virtual void registerDefinition(Definition *this)
+%operation %virtual void registerDefinition(Definition *this);
 
 registerDefinition(MethodDef) {
 
@@ -593,85 +823,10 @@ registerDefinition(ParameterDef) {
 }
 
 /*=====================================================================*/
-/*** Classes for Decorated Nodes ***/
-/*=====================================================================*/
+%operation %virtual DecoratedBlockStatement* checkBody(MethodDef *this);
 
-%node DecoratedNode %abstract %typedef
-/*=====================================================================*/
-/*** Decorated Expressions Tree ***/
-%node DecoratedExpression DecoratedNode %abstract
-
-%node DecoratedBinaryExpression DecoratedExpression %abstract = {
-    DecoratedExpression *left;
-    DecoratedExpression *right;
+checkBody(MethodDef) {
+    return (DecoratedBlockStatement*)method_body->validateSemantics();
 }
 
-%node DecoratedAddExpression DecoratedBinaryExpression
-%node DecoratedSubExpression DecoratedBinaryExpression
-%node DecoratedMultExpression DecoratedBinaryExpression
-%node DecoratedDivExpression DecoratedBinaryExpression
-%node DecoratedModExpression DecoratedBinaryExpression
-%node DecoratedAndExpression DecoratedBinaryExpression
-%node DecoratedOrExpression DecoratedBinaryExpression
-%node DecoratedGTExpression DecoratedBinaryExpression
-%node DecoratedLTExpression DecoratedBinaryExpression
-%node DecoratedGTEExpression DecoratedBinaryExpression
-%node DecoratedLTEExpression DecoratedBinaryExpression
-%node DecoratedEqExpression DecoratedBinaryExpression
-%node DecoratedNotEqExpression DecoratedBinaryExpression
-%node DecoratedRShiftExpression DecoratedBinaryExpression
-%node DecoratedLShiftExpression DecoratedBinaryExpression
-%node DecoratedRotExpression DecoratedBinaryExpression
-
-%node DecoratedUnaryExpression DecoratedExpression %abstract = {
-    DecoratedExpression *expression;
-}
-
-%node DecoratedNotExpression DecoratedUnaryExpression
-%node DecoratedNegExpression DecoratedUnaryExpression
-
-/*=====================================================================*/
-/*** Decorated Statements Tree ***/
-%node DecoratedStatement DecoratedNode %abstract
-
-%node DecoratedAssignmentStatement DecoratedStatement = {
-    DecoratedExpression *lvalue;
-    DecoratedExpression *value;
-}
-
-%node DecoratedMethodCallStatement DecoratedStatement = {
-    int                     method_index;
-    DecoratedExpressionList *arguments;
-}
-
-%node DecoratedIfStatement DecoratedStatement = {
-    DecoratedExpression *condition;
-    DecoratedStatement  *true_part;
-    DecoratedStatement  *false_part;
-}
-
-%node DecoratedWhileStatement DecoratedStatement = {
-    DecoratedExpression *condition;
-    DecoratedStatement  *loop_body;
-}
-
-%node DecoratedForStatement DecoratedStatement = {
-    DecoratedStatement  *assignment_list1;
-    DecoratedExpression *condition;
-    DecoratedStatement  *assignment_list2;
-    DecoratedStatement  *loop_body;
-}
-
-%node DecoratedReturnStatement DecoratedStatement = {
-    DecoratedExpression *expression;
-}
-
-%node DecoratedBreakStatement DecoratedStatement
-%node DecoratedContinueStatement DecoratedStatement
-
-%node DecoratedBlockStatement DecoratedStatement = {
-    %nocreate DecoratedStatementList  *statement_list = {0};
-}
-
-/*=====================================================================*/
-/*** Operations for Statement Tree ***/
+%include "decaf_semantic_tree.tc"
