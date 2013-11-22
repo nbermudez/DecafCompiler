@@ -1,0 +1,101 @@
+class test_return_methods
+{
+	int aaaaa = 10;
+	int bbbbb1 = 20;
+	int x, y, z;
+	boolean t = false;
+	/*hola
+	dsf
+	s*/
+	
+	void main()
+	{
+		x = a;
+		y = b;
+		z = gcd(x, y);
+		x = 1+false;
+
+		print z;
+
+		while(1) {
+			print a;
+			print x;
+			while (true) {
+				continue;
+			}
+			break;
+			x = a + 1;
+		}
+	}
+
+	// Funcion que calcula el maximo comun divisor
+	int gcd(int a, int b)
+	{
+		if (b == 0) {
+			return (a);
+		} else {
+			return (gcd(b, a % b));
+		}
+	}
+	
+	boolean function2(int a){
+		if(true){
+			return 1+2+a;
+		}else{ 
+			return false;
+		}
+		{
+			{
+				return a;
+			}
+			{
+				//return a;
+			}
+		}
+	}
+	
+	void function3(){
+		return false;
+	}
+	
+	void function4(){
+		return 1;
+		return;
+		return false;
+	}
+	/****potato comment**/
+	
+	int megaTest(int x, boolean y, int z){
+		{
+			{
+				if (1>2){
+					return 1;
+				} else {
+					return z+x;
+				}
+			}
+			return x;
+		}
+	}
+
+	int function2(){
+		if(1==1) {
+			if (2==2) {
+				return 1;
+			} else {
+				return 2;
+			}
+		} else {
+			return 2;
+		}
+		return 3;
+		while (1 == 2)
+		{
+			{
+				{
+					print "hola";
+				}
+			}
+		}
+	}
+}

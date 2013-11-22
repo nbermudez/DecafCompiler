@@ -1,98 +1,139 @@
 %decls %{
-#include <string>
-#include <list>
-#include <cstring>
-#include <cstdlib>
-#include <sstream>
-#include <cstddef>
+	#include <string>
+	#include <list>
+	#include <vector>
+	#include <cstring>
+	#include <cstdlib>
+	#include <sstream>
+	#include <cstddef>
 
-#include "Value.h"
-#include "Util.h"
-#include "error_handler.h"
-#include "register_manager.h"
-using namespace std;
+	#include "Value.h"
+	#include "Util.h"
+	#include "error_handler.h"
+	#include "register_manager.h"
+	#include "context_manager.h"
+	using namespace std;
 
-class Statement;
-typedef list<Statement *> StatementList;
+	class Statement;
+	typedef list<Statement *> StatementList;
 
-class Expression;
-typedef list<Expression *> ExpressionList;
+	class Expression;
+	typedef list<Expression *> ExpressionList;
 
-class VariableDef;
-typedef list<VariableDef *> VariableDefList;
+	class VariableDef;
+	typedef list<VariableDef *> VariableDefList;
 
-class ParameterDef;
-typedef list<ParameterDef *> ParameterDefList;
+	class ParameterDef;
+	typedef list<ParameterDef *> ParameterDefList;
 
-class MethodDef;
-typedef list<MethodDef *> MethodDefList;
+	class MethodDef;
+	typedef list<MethodDef *> MethodDefList;
 
-class BlockStatement;
-void setStatementList(BlockStatement *block, StatementList *stList);
-void addStatement(BlockStatement *block, Statement *statement);
+	typedef list<string> VariableNameList;
 
-typedef enum {
-	OpAdd,
-	OpSub,
-	OpMul,
-	OpDiv,
-	OpMod,
-	OpAnd,
-	OpOr,
-	OpNot,
-	OpGT,
-	OpLT,
-	OpGTE,
-	OpLTE,
-	OpEq,
-	OpNotEq,
-	OpRShift,
-	OpLShift,
-	OpRot
-} ExpressionOperator;
+	class BlockStatement;
+	void setStatementList(BlockStatement *block, StatementList *stList);
+	void addStatement(BlockStatement *block, Statement *statement);
 
-typedef union {
-	int int_value;
-	bool bool_value;
-	char *string_value;
-} union_constants;
+	typedef enum {
+		OpAdd,
+		OpSub,
+		OpMul,
+		OpDiv,
+		OpMod,
+		OpAnd,
+		OpOr,
+		OpNot,
+		OpGT,
+		OpLT,
+		OpGTE,
+		OpLTE,
+		OpEq,
+		OpNotEq,
+		OpRShift,
+		OpLShift,
+		OpRot
+	} ExpressionOperator;
+
+	typedef union {
+		int int_value;
+		bool bool_value;
+		char *string_value;
+	} union_constants;
 
 
-/*** Typedefs for Decorated Nodes ***/
-class DecoratedExpression;
-typedef list<DecoratedExpression *> DecoratedExpressionList;
+	/*** Typedefs for Decorated Nodes ***/
+	class DecoratedExpression;
+	typedef list<DecoratedExpression *> DecoratedExpressionList;
 
-class DecoratedStatement;
-typedef list<DecoratedStatement *> DecoratedStatementList;
+	class DecoratedStatement;
+	typedef list<DecoratedStatement *> DecoratedStatementList;
 %}
 
 %{
-#include "decaf_tree.h"
+	#include "decaf_tree.h"
+	int statement_line;
+	int deepLevel = 1;
 
-string OperatorToString(ExpressionOperator oper) {
-	switch (oper)
-	{
-		case OpAdd: return "+";
-		case OpSub: return "-";
-		case OpMul: return "*";
-		case OpDiv: return "/";
-		case OpMod: return "%";
-		case OpAnd: return "&&";
-		case OpOr: return "||";
-		case OpNot: return "!";
-		case OpGT: return ">";
-		case OpLT: return "<";
-		case OpGTE: return ">=";
-		case OpLTE: return "<=";
-		case OpEq: return "==";
-		case OpNotEq: return "!=";
-		case OpRShift: return ">>";
-		case OpLShift: return "<<";
-		case OpRot: return "rot";
-		default:
-				return "Unknown";
+
+    bool insideLoop = false;
+    bool breakFound = false;
+    bool continueFound = false;
+    bool returnFound = false;
+
+    ExpressionType *currentReturnType = NULL; 
+
+    Function *currentFunction = NULL;
+
+    LocalVariablesMap *local_variables = NULL;	
+
+	string OperatorToString(ExpressionOperator oper) {
+		switch (oper)
+		{
+			case OpAdd: return "+";
+			case OpSub: return "-";
+			case OpMul: return "*";
+			case OpDiv: return "/";
+			case OpMod: return "%";
+			case OpAnd: return "&&";
+			case OpOr: return "||";
+			case OpNot: return "!";
+			case OpGT: return ">";
+			case OpLT: return "<";
+			case OpGTE: return ">=";
+			case OpLTE: return "<=";
+			case OpEq: return "==";
+			case OpNotEq: return "!=";
+			case OpRShift: return ">>";
+			case OpLShift: return "<<";
+			case OpRot: return "rot";
+			default:
+					return "Unknown";
+		}
 	}
-}
+
+	ExpressionType *TypeToExpressionType(Type type) {
+		ExpressionType *newType = NULL;
+		switch (type) {
+			case Int:
+				newType = new IntegerType();
+				break;
+			case Boolean:
+				newType = new BooleanType();
+				break;
+			case Void:
+				newType = new VoidType();
+				break;
+		}
+
+		return newType;
+	}
+
+	bool isUnreachableStatement() {
+		if (continueFound || breakFound || returnFound)
+			return true;
+		return false;
+	}
 %}
 
 %header "decaf_tree.h"
@@ -137,6 +178,11 @@ void addMethod(ClassDef *classDef, MethodDef *method_def) {
 	%nocreate Expression* initial_value = {0};
 }
 
+%node LocalVariableDefList Statement = {
+	%nocreate Type variable_type;
+	%nocreate VariableNameList	*variable_names = {NULL};
+}
+
 %node ParameterDef Definition = {
 	string parameter_name;
 	Type parameter_type;
@@ -144,6 +190,7 @@ void addMethod(ClassDef *classDef, MethodDef *method_def) {
 
 %node MethodDef Definition = {
 	string method_name;
+	int line;
 	%nocreate Type method_return_type;
 	%nocreate ParameterDefList *method_parameters;
 	%nocreate Statement *method_body;
@@ -230,6 +277,9 @@ void addMethod(ClassDef *classDef, MethodDef *method_def) {
 %node PrintStatement Statement = {
 	ExpressionList *arguments;
 }
+%node ReadStatement Statement = {
+	ExpressionList *arguments;
+}
 
 %end %{
 void setStatementList(BlockStatement *block, StatementList *stList) {
@@ -267,7 +317,6 @@ toString(ClassDef) {
 toString(VariableDef) {
 	ostringstream out;
 
-	out << "//Linea: " << line << ": Columna: " << column << endl;
 	out << TypeToString(variable_type) << " " << variable_name;
 
 	if (is_array_def)
@@ -275,6 +324,14 @@ toString(VariableDef) {
 
 	if (initial_value != 0)
 		out << " = " + initial_value->toString();
+
+	return out.str();
+}
+
+toString(LocalVariableDefList) {
+	ostringstream out;
+
+	out << TypeToString(variable_type) << " ";
 
 	return out.str();
 }
@@ -347,7 +404,10 @@ toString(RealConstantExpression) {
 toString(BooleanConstantExpression) {
 	ostringstream out;
 
-	out << bool_value;
+	if (bool_value)
+		out << "true";
+	else 
+		out << "false";
 	return out.str();
 }
 
@@ -362,7 +422,6 @@ toString(StringConstantExpression) {
 toString(AssignmentStatement) {
 	ostringstream out;
 
-	out << "// Linea " << line << " Columna " << column << "\n"; 
 	out << lvalue->toString() << " = " << expr->toString() << ";";
 
 	return out.str();
@@ -390,7 +449,7 @@ toString(WhileStatement) {
 	ostringstream out;
 
 	out << "while (" << condition->toString() << ")" << endl;
-	out << "{" << loop_body->toString() << endl << "}";
+	out << loop_body->toString() << endl;
 
 	return out.str();
 }
@@ -400,8 +459,8 @@ toString(ForStatement) {
 
 	out << "for (" << assignment_list1->toString();
 	out << ";" << condition->toString();
-	out << ";" << assignment_list2->toString();
-	out << "{" << endl << loop_body->toString() << endl << "}";
+	out << ";" << assignment_list2->toString() << ")";
+	out << endl << loop_body->toString() << endl;
 
 	return out.str();
 }
@@ -440,7 +499,11 @@ toString(BlockStatement) {
 }
 
 toString(PrintStatement) {
-	return  "print (" + ListToString(arguments, ", ", false) + ");";
+	return  "print " + ListToString(arguments, ", ", false) + ";";
+}
+
+toString(ReadStatement) {
+	return  "read " + ListToString(arguments, ", ", false) + ";";
 }
 
 %include "decaf_types.tc"
@@ -451,14 +514,16 @@ toString(PrintStatement) {
 /*** Validate Semantics for Expressions ***/
 /*=====================================================================*/
 validateSemantics(ClassDef) {
-    list<VariableDef*>::iterator variable_iterator = field_def_list->begin();
-    
-    while(variable_iterator != field_def_list->end()) {
-        VariableDef * field_def = *variable_iterator;
-        field_def->registerDefinition();
-        variable_iterator++;
-    }
-    
+	if (field_def_list != NULL) {
+	    list<VariableDef*>::iterator variable_iterator = field_def_list->begin();
+	    
+	    while(variable_iterator != field_def_list->end()) {
+	        VariableDef * field_def = *variable_iterator;
+	        field_def->registerDefinition();
+	        variable_iterator++;
+	    }
+	}
+
     list<MethodDef*>::iterator method_iterator = method_def_list->begin();
     
     while(method_iterator != method_def_list->end()) {
@@ -468,27 +533,40 @@ validateSemantics(ClassDef) {
     }
     
     /************ Check method bodies. ************/
+    bool mainFound = false;
     method_iterator = method_def_list->begin();
     DecoratedBlockStatement *main_block = NULL;
     while(method_iterator != method_def_list->end()) {
         MethodDef * method_def = *method_iterator;
+        
+        insideLoop = false;
+		continueFound = false;
+		breakFound = false;
+		returnFound = false;
+
+        currentFunction = getSymbolTableInstance()->getFunction(method_def->method_name);
+        
         if (method_def->method_name == "main") {
         	main_block = method_def->checkBody();
+        	currentFunction->setBody(main_block);
+        	mainFound = true;
         } else {
-        	method_def->checkBody();
+        	DecoratedBlockStatement *block = method_def->checkBody();
+        	currentFunction->setBody(block);
         }
         method_iterator++;
     }
 
+    if (!mainFound) {
+    	ErrorHandler::getInstance().handleError(statement_line, "main method not found");
+    }
+
     DecoratedClass *decorated_class = new DecoratedClass(this->name);
     decorated_class->main = main_block;
-    
     return decorated_class;
 }
 
 validateSemantics(BinaryExpression) {
-    cout << "validating binary expression semantics" << endl;
-    
     DecoratedExpression *dLeft = (DecoratedExpression*)(left->validateSemantics());
     DecoratedExpression *dRight = (DecoratedExpression*)(right->validateSemantics());
     
@@ -496,16 +574,16 @@ validateSemantics(BinaryExpression) {
         return NULL;
     
     if (!dLeft->type->isEquivalent(dRight->type)) {
-        ErrorHandler::getInstance().handleError("type mismatch for operator " + 
+        ErrorHandler::getInstance().handleError(statement_line, "type mismatch for operator " + 
                                                 OperatorToString(expression_operator) +
                                                 " for types " + dLeft->type->stringValue() +
                                                 " and " + dRight->type->stringValue());
-        cout << dLeft->type->stringValue() << " not equivalent to" << dRight->type->stringValue() << endl;
+        cout << dLeft->type->stringValue() << " not equivalent to " << dRight->type->stringValue() << endl;
         return NULL;
     }
-    cout << "before testing string type" << endl;
+
     if (dynamic_cast<StringType*>(dLeft->type) != NULL) {
-        ErrorHandler::getInstance().handleError("type mismatch for operator " + 
+        ErrorHandler::getInstance().handleError(statement_line, "type mismatch for operator " + 
                                                 OperatorToString(expression_operator) +
                                                 " for types " + dLeft->type->stringValue() +
                                                 " and " + dRight->type->stringValue());
@@ -514,23 +592,18 @@ validateSemantics(BinaryExpression) {
     
     ExpressionType      *type;
     
-    cout << "operator " << OperatorToString(expression_operator) << endl;
-    
     if (dynamic_cast<FloatType*>(dLeft->type) != NULL
         || dynamic_cast<FloatType*>(dRight->type) != NULL) {
         
         type = new FloatType();
-        cout << "left side is float " << endl;
+    	ErrorHandler::getInstance().handleError(statement_line, "floating type not supported");
+    	return NULL;
     }
     if (dynamic_cast<BooleanType*>(dLeft->type) != NULL) {
         type = new BooleanType();
-        
-        cout << "left side is boolean " << endl;
     }
     if (dynamic_cast<IntegerType*>(dLeft->type) != NULL) {
         type = new IntegerType();
-        
-        cout << "left side is integer " << endl;
     }
     
     
@@ -571,33 +644,33 @@ validateSemantics(BinaryExpression) {
             else
                 return NULL;
         case OpGT:
-            if (type->isBoolean())
-                return new DecoratedGTExpression(type, dLeft, dRight);
+            if (type->isNumeric())
+                return new DecoratedGTExpression(new BooleanType(), dLeft, dRight);
             else
                 return NULL;
         case OpLT:
-            if (type->isBoolean())
-                return new DecoratedLTExpression(type, dLeft, dRight);
+            if (type->isNumeric())
+                return new DecoratedLTExpression(new BooleanType(), dLeft, dRight);
             else
                 return NULL;
         case OpGTE:
-            if (type->isBoolean())
-                return new DecoratedGTEExpression(type, dLeft, dRight);
+            if (type->isNumeric())
+                return new DecoratedGTEExpression(new BooleanType(), dLeft, dRight);
             else
                 return NULL;
         case OpLTE:
-            if (type->isBoolean())
-                return new DecoratedLTEExpression(type, dLeft, dRight);
+            if (type->isNumeric())
+                return new DecoratedLTEExpression(new BooleanType(), dLeft, dRight);
             else
                 return NULL;
         case OpEq:
-            if (type->isBoolean())
-                return new DecoratedEqExpression(type, dLeft, dRight);
+            if (type->isBoolean() || type->isNumeric())
+                return new DecoratedEqExpression(new BooleanType(), dLeft, dRight);
             else
                 return NULL;
         case OpNotEq:
-            if (type->isBoolean())
-                return new DecoratedNotEqExpression(type, dLeft, dRight);
+            if (type->isBoolean() || type->isNumeric())
+                return new DecoratedNotEqExpression(new BooleanType(), dLeft, dRight);
             else
                 return NULL;
         case OpRShift:
@@ -645,137 +718,417 @@ validateSemantics(UnaryExpression) {
 }
 
 validateSemantics(LValueExpression) {
-    cout << "validating lvalue semantics " << endl;
+	cout << "inside lvalue with " << variable_name << endl;
+	Variable *variable_def = getSymbolTableInstance()->getVariable(variable_name);
+	//TODO: agregar los scopes cuando ya esten.
+
     DecoratedExpression *d_array_index = NULL;
-    if (array_index != NULL)
+    if (array_index != NULL) {
+        if (dynamic_cast<ArrayVariable*>(variable_def) == NULL) {
+        	ErrorHandler::getInstance().handleError(statement_line, 
+        		"variable '" + variable_name + "' is not an array");
+        }
         d_array_index = (DecoratedExpression*)array_index->validateSemantics();
+
+        if (d_array_index == NULL){
+        	return NULL;
+        } else {
+        	if (!d_array_index->type->isEquivalent(new IntegerType())) {
+        		ErrorHandler::getInstance().handleError(statement_line, 
+        			"array index expression must be of int type");
+        		return NULL;
+        	}
+        }
+    }
+
+    bool isParameter = currentFunction->findParameter(variable_name) != NULL;
+
+    if (variable_def == NULL && !isParameter) {
+		ErrorHandler::getInstance().handleError(statement_line, 
+			"variable '" + variable_name + "' not declared in this scope");
+		return NULL;
+	}
+
     return new DecoratedLValue(new IntegerType(), variable_name, d_array_index);
 }
 
-validateSemantics(MethodCallExpression) {
-    cout << "validating method call expression " << endl;
-    list<Expression*>::iterator expression_iterator = method_arguments->begin();
-    
-    cout << "parameters: " << endl;
-    DecoratedExpressionList *d_arguments = new DecoratedExpressionList;
+validateSemantics(MethodCallExpression) {    
+	Function *function_def = getSymbolTableInstance()->getFunction(method_name);
+	if ( function_def == NULL ) {
+		ErrorHandler::getInstance().handleError(statement_line, "undefined method '" + method_name + "'");
+		return NULL;
+	}
 
-    while (expression_iterator != method_arguments->end()) {
-        Expression *expression = *expression_iterator;
-        DecoratedExpression *d_expr = (DecoratedExpression*)expression->validateSemantics();
-        d_arguments->push_back(d_expr);
-        
-        expression_iterator++;
-    }
+	DecoratedExpressionList *d_arguments = new DecoratedExpressionList;
+	if (method_arguments != NULL) {
+	    list<Expression*>::iterator expression_iterator = method_arguments->begin();	 
 
-    return new DecoratedMethodCallExpression(new IntegerType(), method_name, d_arguments);
+	    if (function_def->parameters.size() != method_arguments->size()) {
+	    	ErrorHandler::getInstance().handleError(statement_line, 
+	    		"incorrect number of arguments in method '" + method_name + "'");
+	    	return NULL;	
+	    }   
+	    
+	    int parameterId = 0;
+	    int nullCount = 0;
+	    while (expression_iterator != method_arguments->end()) {
+	        Expression *expression = *expression_iterator;
+	        DecoratedExpression *d_expr = (DecoratedExpression*)expression->validateSemantics();
+
+	        if (d_expr == NULL)
+	        	return NULL;
+
+	        if (!(d_expr->type->isEquivalent(function_def->getParameter(parameterId)->type))) {
+	        	ostringstream out;
+
+	        	out << "type mismatch for parameter at position " << parameterId 
+	        		<< " expected " << function_def->getParameter(parameterId)->type->stringValue() 
+	        		<< " but found " << d_expr->type->stringValue();
+	        	ErrorHandler::getInstance().handleError(statement_line, out.str());
+	        	nullCount++;
+	        }
+
+	        d_arguments->push_back(d_expr);
+	        d_expr->line = statement_line;
+	        
+	        expression_iterator++;
+	        parameterId++;
+	    }
+	    if (nullCount != 0) {
+			return NULL;
+		}
+	}
+
+	ExpressionType *type;
+
+	switch(function_def->type) {
+		case Int:
+			type = new IntegerType();
+			break;
+		case Boolean:
+			type = new BooleanType();
+			break;
+		case Void:
+			ErrorHandler::getInstance().handleError(statement_line, 
+				"void method '" + method_name + "' cannot be used as an expression");
+			return NULL;
+		default:
+			ErrorHandler::getInstance().handleError(statement_line, "this shouldn't be happening");
+
+	}
+
+    return new DecoratedMethodCallExpression(type, method_name, d_arguments);
 }
 
 validateSemantics(IntConstantExpression) {
-    cout << "validating int constant semantics " << endl;
     return new DecoratedIntConstant(new IntegerType(), int_value);
 }
 
 validateSemantics(RealConstantExpression) {
-    cout << "validating real constant semantics " << endl;
-    /*TODO: instancia el nuevo nodo decorado*/
+    ErrorHandler::getInstance().handleError(statement_line, "floating type is not supported");
+    return NULL;
 }
 
 validateSemantics(BooleanConstantExpression) {
-    cout << "validating boolean constant semantics " << endl;
     return new DecoratedBooleanConstant(new BooleanType(), bool_value);
 }
 
 validateSemantics(StringConstantExpression) {
-    cout << "validating string constant semantics " << endl;
-    /*TODO: instancia el nuevo nodo decorado*/
+	getSymbolTableInstance()->registerString(string_value);
+    return new DecoratedStringConstant(new StringType(), string_value);
 }
 
 /*** Validate Semantics for Statements ***/
 /*=====================================================================*/
 validateSemantics(AssignmentStatement) {
-    cout << "validating assignment statement semantics" << endl;
-    DecoratedLValue *d_lvalue = (DecoratedLValue*)lvalue->validateSemantics();
-    cout << "after lvalue semantics" << endl;
-    DecoratedExpression *d_expr = (DecoratedExpression*)expr->validateSemantics();
+	if (isUnreachableStatement()) 
+		ErrorHandler::getInstance().handleWarning(line, "unreachable statement");
 
-    return new DecoratedAssignmentStatement(d_lvalue, d_expr);
+	statement_line = line;
+
+    cout << "validating assignment statement semantics" << endl;
+    DecoratedLValue *d_lvalue = (DecoratedLValue*)(lvalue->validateSemantics());
+    cout << "after lvalue semantics" << endl;
+    DecoratedExpression *d_expr = (DecoratedExpression*)(expr->validateSemantics());
+
+    if (d_expr == NULL || d_lvalue == NULL) {
+    	cout << "returning null" << endl;
+    	return NULL;
+    }
+
+    if (!(d_expr->type->isEquivalent(d_lvalue->type))) {
+    	ErrorHandler::getInstance().handleError(line, 
+    		"type mismatch assigning " + d_expr->type->stringValue() 
+    		+ " to " + d_lvalue->type->stringValue());
+    	return NULL;
+    }
+
+    d_lvalue->line = line;
+    d_expr->line = line;
+
+    return new DecoratedAssignmentStatement(line, d_lvalue, d_expr);
 }
 
 validateSemantics(MethodCallStatement) {
-    list<Expression*>::iterator expression_iterator = arguments->begin();
-    
-    DecoratedExpressionList *d_arguments = new DecoratedExpressionList;
-    while (expression_iterator != arguments->end()) {
-        Expression *expression = *expression_iterator;
-        DecoratedExpression *d_expr = (DecoratedExpression*)expression->validateSemantics();
+	if (isUnreachableStatement()) 
+		ErrorHandler::getInstance().handleWarning(line, "unreachable statement");
 
-        d_arguments->push_back(d_expr);
-        
-        expression_iterator++;
-    }
+	statement_line = line;
 
-    return new DecoratedMethodCallStatement(d_arguments);
+	Function *function_def = getSymbolTableInstance()->getFunction(name);
+	if ( function_def == NULL ) {
+		ErrorHandler::getInstance().handleError(line, "undefined method '" + name + "'");
+		return NULL;
+	}
+
+	DecoratedExpressionList *d_arguments = new DecoratedExpressionList;
+	if (arguments != NULL) {
+	    list<Expression*>::iterator expression_iterator = arguments->begin();	 
+
+	    if (function_def->parameters.size() != arguments->size()) {
+	    	ErrorHandler::getInstance().handleError(line, 
+	    		"incorrect number of arguments in method '" + name + "'");
+	    	return NULL;	
+	    }   
+	    
+	    int parameterId = 0;
+	    int nullCount = 0;
+	    while (expression_iterator != arguments->end()) {
+	        Expression *expression = *expression_iterator;
+	        DecoratedExpression *d_expr = (DecoratedExpression*)expression->validateSemantics();
+
+	        if (d_expr == NULL)
+	        	return NULL;
+
+	        if (!(d_expr->type->isEquivalent(function_def->getParameter(parameterId)->type))) {
+	        	ErrorHandler::getInstance().handleError(line, 
+	        		"type mismatch for parameter at position " + parameterId);
+	        	nullCount++;
+	        }
+
+	        d_arguments->push_back(d_expr);
+	        d_expr->line = line;
+	        
+	        expression_iterator++;
+	        parameterId++;
+	    }
+	    if (nullCount != 0) {
+			return NULL;
+		}
+	}
+
+    return new DecoratedMethodCallStatement(line, name, d_arguments);
 }
 
 validateSemantics(IfStatement) {
-    cout << "validating if statement semantics " << endl;
-    condition->validateSemantics();
+	if (isUnreachableStatement()) 
+		ErrorHandler::getInstance().handleWarning(line, "unreachable statement");
+
+	statement_line = line;
+
+    DecoratedExpression *d_condition = (DecoratedExpression*)(condition->validateSemantics());
     
-    cout << "validateSemantics if true part " << endl;
-    true_part->validateSemantics();
+    insideLoop = true;
+    DecoratedBlockStatement *d_true = (DecoratedBlockStatement*)(true_part->validateSemantics());
+    insideLoop = false;
+    returnFound = false;
+    continueFound = false;
+    breakFound = false;
+
+    DecoratedBlockStatement *d_false = NULL;
     
-    if (false_part != NULL)
-        false_part->validateSemantics();
+    if (false_part != NULL) {
+        d_false = (DecoratedBlockStatement*)(false_part->validateSemantics());
+
+        if (d_false == NULL)
+        	return NULL;
+    }
+    insideLoop = false;
+
+    if (d_true == NULL || d_condition == NULL) {
+    	cout << "return null 1" << endl;
+    	cout << (d_condition == NULL) << endl;
+    	cout << (d_true == NULL) << endl;
+    	return NULL;
+    }
+
+    if (!d_condition->type->isBoolean()) {
+    	ErrorHandler::getInstance().handleError(line, "if statement condition must be boolean");
+    	cout << "return null 2" << endl;
+    	return NULL;
+    }
+
+    return new DecoratedIfStatement(line, d_condition, d_true, d_false);
 }
 
 validateSemantics(WhileStatement) {
-    condition->validateSemantics();
-    loop_body->validateSemantics();
+	if (isUnreachableStatement()) 
+		ErrorHandler::getInstance().handleWarning(line, "unreachable statement");
+
+	statement_line = line;
+
+    DecoratedExpression *d_expr = (DecoratedExpression*)condition->validateSemantics();
+
+    insideLoop = true;
+    continueFound = false;
+    breakFound = false;
+
+    DecoratedStatement *d_stmt = (DecoratedStatement*)loop_body->validateSemantics();
+    
+    insideLoop = false;
+    
+
+    if (d_expr == NULL || d_stmt == NULL)
+    	return NULL;
+
+    if (!d_expr->type->isBoolean()) {
+    	ErrorHandler::getInstance().handleError(line, "while statement condition must be boolean");
+    	return NULL;
+    }
+
+    d_expr->line = line;
+    d_stmt->line = line;
+
+    return new DecoratedWhileStatement(line, d_expr, d_stmt);
 }
 
 validateSemantics(ForStatement) {
+	if (isUnreachableStatement()) 
+		ErrorHandler::getInstance().handleWarning(line, "unreachable statement");
+
+	statement_line = line;
+
     DecoratedStatement *d_assignment_list1 = (DecoratedStatement*)assignment_list1->validateSemantics();
-    condition->validateSemantics();
-    assignment_list2->validateSemantics();
-    loop_body->validateSemantics();
+    DecoratedExpression *d_condition = (DecoratedExpression*)condition->validateSemantics();
+    DecoratedStatement *d_assignment_list2 = (DecoratedStatement*)assignment_list2->validateSemantics();
+
+    insideLoop = true;
+    DecoratedBlockStatement *d_body = (DecoratedBlockStatement*)loop_body->validateSemantics();
+    insideLoop = false;
+    continueFound = false;
+    breakFound = false;
+
+    if (d_assignment_list1 == NULL || d_assignment_list2 == NULL 
+    	|| d_condition == NULL || d_body == NULL) {
+    	return NULL;
+    }
+
+    if (!d_condition->type->isBoolean()) {
+    	ErrorHandler::getInstance().handleError(line, "for statement condition must be boolean");
+    	return NULL;
+    }
+
+    return new DecoratedForStatement(line, d_assignment_list1, d_condition, d_assignment_list2, d_body);
 }
 
 validateSemantics(ReturnStatement) {
-    cout << "validating return statement semantics " << endl;
+	if (isUnreachableStatement()) 
+		ErrorHandler::getInstance().handleWarning(line, "unreachable statement");
+
+	statement_line = line;
+	returnFound = true;
+
     DecoratedExpression *decorated_expression = NULL;
     if (expr != NULL) {
         decorated_expression = (DecoratedExpression*)expr->validateSemantics();
     }
-    return new DecoratedReturnStatement(decorated_expression);
+
+    if (expr != NULL && decorated_expression == NULL) {
+    	return NULL;
+    }
+
+    if (expr == NULL && currentFunction->type != Void) {
+    	ErrorHandler::getInstance().handleError(line, 
+    		"return expression must be " + TypeToString(currentFunction->type) 
+    		+ " but found void ");
+    }
+
+    if (currentFunction->type == Void && expr != NULL) {
+    	ErrorHandler::getInstance().handleError(line, "void method cannot return an expression");
+    	return NULL;
+    } else if (decorated_expression != NULL && 
+    	!decorated_expression->type->isEquivalent(TypeToExpressionType(currentFunction->type))) {
+    	ErrorHandler::getInstance().handleError(line, 
+    		"return expression must be " + TypeToString(currentFunction->type)
+    		+ " but found " + decorated_expression->type->stringValue());
+    	return NULL;
+    }
+
+    return new DecoratedReturnStatement(line, decorated_expression);
 }
 
 validateSemantics(BreakStatement) {
-    /*TODO: instancia el nuevo nodo decorado*/
-    return new DecoratedBreakStatement();
+	if (isUnreachableStatement()) 
+		ErrorHandler::getInstance().handleWarning(line, "unreachable statement");
+
+	statement_line = line;
+
+    if (!insideLoop) {
+    	ErrorHandler::getInstance().handleError(line, "break statement must be inside a loop");
+    	return NULL;
+    }
+
+    breakFound = true;
+    return new DecoratedBreakStatement(line);
 }
 
 validateSemantics(ContinueStatement) {
-    /*TODO: instancia el nuevo nodo decorado*/
-    return new DecoratedContinueStatement();
+	if (isUnreachableStatement()) 
+		ErrorHandler::getInstance().handleWarning(line, "unreachable statement");
+
+	statement_line = line;
+
+    if (!insideLoop) {
+    	ErrorHandler::getInstance().handleError(line, "continue statement must be inside a loop");
+    	return NULL;
+    }
+
+    continueFound = true;
+    return new DecoratedContinueStatement(line);
 }
 
 validateSemantics(BlockStatement) {
+	if (isUnreachableStatement()) 
+		ErrorHandler::getInstance().handleWarning(line, "unreachable statement");
+
+	statement_line = line;
+
     list<Statement*>::iterator statement_iterator = statement_list->begin();
     
     DecoratedStatementList  *decorated_statement_list = new DecoratedStatementList;
-    
+
+    //TODO: hacer pop a un stack del mapa actual
+
+    int nullCount = 0;
+    deepLevel += 1;
     while (statement_iterator != statement_list->end()) {
         Statement *statement = *statement_iterator;
         DecoratedStatement *decorated_statement =  (DecoratedStatement*)statement->validateSemantics();
-        decorated_statement_list->push_back(decorated_statement);
+
+        if (decorated_statement != NULL)
+        	decorated_statement_list->push_back(decorated_statement);
+        else
+        	nullCount++;
         
         statement_iterator++;
     }
+    cout << "nullCount " << nullCount << endl;
+    if (nullCount>0)
+    	return NULL;
+
+    DecoratedBlockStatement *newBlock = new DecoratedBlockStatement(line, decorated_statement_list);
+    newBlock->deepLevel = deepLevel - 1;
+    deepLevel -= 1;
     
-    return new DecoratedBlockStatement(decorated_statement_list);
+    return newBlock;
 }
 
 validateSemantics(PrintStatement) {
+	if (isUnreachableStatement()) 
+		ErrorHandler::getInstance().handleWarning(line, "unreachable statement");
+
+	statement_line = line;
+
 	list<Expression*>::iterator expression_iterator = arguments->begin();
     
     DecoratedExpressionList *d_arguments = new DecoratedExpressionList;
@@ -783,12 +1136,39 @@ validateSemantics(PrintStatement) {
         Expression *expression = *expression_iterator;
         DecoratedExpression *d_expr = (DecoratedExpression*)expression->validateSemantics();
 
+        if (d_expr == NULL)
+        	return NULL;
+
         d_arguments->push_back(d_expr);
         
         expression_iterator++;
     }
 
-    return new DecoratedMethodCallStatement(d_arguments);
+    return new DecoratedPrintStatement(line, d_arguments);
+}
+
+validateSemantics(ReadStatement) {
+	if (isUnreachableStatement()) 
+		ErrorHandler::getInstance().handleWarning(line, "unreachable statement");
+
+	statement_line = line;
+
+	list<Expression*>::iterator expression_iterator = arguments->begin();
+    
+    DecoratedExpressionList *d_arguments = new DecoratedExpressionList;
+    while (expression_iterator != arguments->end()) {
+        Expression *expression = *expression_iterator;
+        DecoratedExpression *d_expr = (DecoratedExpression*)expression->validateSemantics();
+
+        if (d_expr == NULL)
+        	return NULL;
+
+        d_arguments->push_back(d_expr);
+        
+        expression_iterator++;
+    }
+
+    return new DecoratedReadStatement(line, d_arguments);
 }
 
 validateSemantics(VariableDef) {
@@ -806,20 +1186,133 @@ validateSemantics(MethodDef) {
     return NULL;
 }
 
+validateSemantics(LocalVariableDefList) {
+	/* DO NOTHING */
+	currentFunction->activation_size += variable_names->size() * 4;
+	return NULL;
+}
+
 
 /*=====================================================================*/
 %operation %virtual void registerDefinition(Definition *this);
 
 registerDefinition(MethodDef) {
+	Function *prev_def = getSymbolTableInstance()->getFunction(method_name);
 
+	if (prev_def != NULL) {
+		ErrorHandler::getInstance().handleError(line, 
+			"already defined method '" + method_name + "'");
+		return;
+	}
+
+	if (getSymbolTableInstance()->getVariable(method_name) != NULL) {
+		ErrorHandler::getInstance().handleError(line, 
+			"there is a global variable declared with this name: '" + method_name + "'");
+	}
+
+	if (method_name == "main") {
+		if (method_parameters->size() > 0) {
+			ErrorHandler::getInstance().handleError(line, 
+				"main method cannot have parameters");
+		}
+		if (method_return_type != Void) {
+			ErrorHandler::getInstance().handleError(line, 
+				"main method must be void");
+		}
+	}
+
+	Function *function_def = new Function;
+
+	list<ParameterDef*>::iterator it = method_parameters->begin();
+	int parameterId = 0;
+	map<string, string> parameter_names;
+	while (it != method_parameters->end()) {
+		ExpressionType *type;
+		string parameter_name = (*it)->parameter_name;
+
+		switch((*it)->parameter_type) {
+			case Int:
+				type = new IntegerType();
+				break;
+			case Boolean:
+				type = new BooleanType();
+				break;
+			default:
+				ErrorHandler::getInstance().handleError(line, 
+					"method parameters can only be integer or boolean");
+		}
+
+		if (parameter_names.count(parameter_name) > 0) {
+			ErrorHandler::getInstance().handleError(line, 
+				"duplicated parameter name '" + (parameter_name) + "'");
+		} else {
+			parameter_names[parameter_name] = parameter_name;
+		}
+
+		SimpleVariable *parameter = new SimpleVariable(type, parameter_name);
+		parameter->parameterId = parameterId;
+		function_def->parameters.push_back(parameter);
+
+		if (parameterId > 3) {
+			function_def->activation_size += 4;
+		}
+
+		it++;
+		parameterId++;
+	}
+
+	if (method_return_type != Int && method_return_type != Boolean && method_return_type != Void) {
+		ErrorHandler::getInstance().handleError(line, 
+			"method return type must be int or boolean or void");
+	}
+
+	function_def->type = method_return_type;
+
+	cout << "registering function " << method_name << " with type " << TypeToString(method_return_type) << endl;
+	getSymbolTableInstance()->registerFunction(method_name, function_def);
 }
 
 registerDefinition(VariableDef) {
+	if ( variable_type != Int && variable_type != Boolean) {
+		ErrorHandler::getInstance().handleError(line, 
+			"possible variable types are int or boolean but found " + TypeToString(variable_type));
+	} else {
+		ExpressionType *type;
+		if (variable_type == Int) {
+			type = new IntegerType();
+		} else {
+			type = new BooleanType();
+		}
 
+		Variable *variable = getSymbolTableInstance()->getVariable(variable_name);
+
+		if (variable != NULL) {
+			ErrorHandler::getInstance().handleError(line, 
+				"already defined variable '" + variable_name + "'");
+			return;
+		}
+
+		if (is_array_def) {
+			if (array_dimension < 0) {
+				ErrorHandler::getInstance().handleError(line, "array size must be greater than zero");
+			} else {
+				getSymbolTableInstance()->registerVariable(variable_name, 
+					new ArrayVariable(type, variable_name, array_dimension));
+			}
+		} else {
+			SimpleVariable *variable = new SimpleVariable(type, variable_name);
+			if (initial_value != NULL) {
+				DecoratedExpression *d_init_value = (DecoratedExpression*)initial_value->validateSemantics();
+				variable->initialized = true;
+				variable->initial_value = d_init_value;
+			}
+			getSymbolTableInstance()->registerVariable(variable_name, variable);
+		}
+	}
 }
 
 registerDefinition(ParameterDef) {
-
+	/* DO NOTHING */
 }
 
 /*=====================================================================*/
@@ -830,3 +1323,5 @@ checkBody(MethodDef) {
 }
 
 %include "decaf_semantic_tree.tc"
+
+%include "symbol_table.tc"

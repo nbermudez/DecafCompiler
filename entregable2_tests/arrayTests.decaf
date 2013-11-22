@@ -1,0 +1,21 @@
+class ArrayTests {
+	int a[10];
+	int i = 0;
+
+	void main() {
+		a[1] = 10;
+		print a[1], "\n";
+
+		print "-----------------------------------------\n";
+
+		for (i = 0; i < 10; i = i + 1) {
+			print a[i], "\n";
+			continue;
+			print "despues del continue\n";
+			break;
+		}
+
+		read a[3];
+		print a[3];
+	}
+}

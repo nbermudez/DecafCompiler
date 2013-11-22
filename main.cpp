@@ -38,10 +38,11 @@ int main(int argc, char *argv[])
 		cout << class_def->toString() << endl;
         
         DecoratedNode *decorated_class = class_def->validateSemantics();
+        cout << "\033[1;34m" << ErrorHandler::getInstance().allWarnings() << "\033[0m\n";
         if (ErrorHandler::getInstance().getErrorCount() > 0) {
-			cout << ErrorHandler::getInstance().allErrors();
+			cout << "\033[1;31m" << ErrorHandler::getInstance().allErrors() << "\033[0m\n";
         } else {
-        	cout << "generating code..." << endl;
+        	cout << "\033[1;32m" << "generating code..." << "\033[0m\n" << endl;
         	cout << decorated_class->generateCode(0);
         }
         

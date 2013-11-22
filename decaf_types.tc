@@ -8,6 +8,7 @@
 %node StringType ExpressionType
 %node IntegerType ExpressionType
 %node BooleanType ExpressionType
+%node VoidType  ExpressionType
 /*=====================================================================*/
 %operation %virtual bool isEquivalent([ExpressionType *this], ExpressionType *secondType)
 
@@ -57,8 +58,17 @@ isEquivalent(BooleanType){
     }
 }
 
+isEquivalent(VoidType) {
+    VoidType *casted_to_void = dynamic_cast<VoidType*>(secondType);
+    if (casted_to_void != NULL) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 /*=====================================================================*/
-%operation %virtual bool isNumeric(ExpressionType *this)
+%operation %virtual bool isNumeric(ExpressionType *this);
 
 isNumeric(FloatType) {
     return true;
@@ -76,8 +86,12 @@ isNumeric(StringType) {
     return false;
 }
 
+isNumeric(VoidType) {
+    return false;
+}
+
 /*=====================================================================*/
-%operation %virtual bool isBoolean(ExpressionType *this)
+%operation %virtual bool isBoolean(ExpressionType *this);
 
 isBoolean(FloatType) {
     return false;
@@ -92,6 +106,10 @@ isBoolean(BooleanType) {
 }
 
 isBoolean(StringType) {
+    return false;
+}
+
+isBoolean(VoidType) {
     return false;
 }
 
@@ -112,4 +130,8 @@ stringValue(BooleanType) {
 
 stringValue(StringType) {
     return "string";
+}
+
+stringValue(VoidType) {
+    return "void";
 }

@@ -1,0 +1,36 @@
+class testUnreachable {
+	int a;
+	int gcd(){
+			return 1;
+		{
+			return 1;
+		}
+	}
+	
+	int function2(){
+		if(1==1) {
+			if (2==2) {
+				return 1;
+			} else {
+				return 2;
+			}
+		} else {
+			return 2;
+		}
+		return 3;
+		while (1 == 2)
+		{
+			{
+				{
+					print "hola";
+				}
+			}
+		}
+	}
+
+	void main() {
+		print "hola mundo\n";
+		return;
+		print function2();
+	}
+}

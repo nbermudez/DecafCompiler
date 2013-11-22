@@ -1,0 +1,28 @@
+class ARSize {
+	void do_nothing(int t, int tt, int ttt, int tttt, int ttttt) {
+		int b;
+		int x;
+
+		{
+			int tx;
+		}
+	}
+
+	int j(int a, int b, int c, int d, int e, int f) {
+		{
+			int w;
+		}
+
+		{
+			int x;
+			{
+				int y;
+			}
+		}
+	}
+
+
+	void main() {
+
+	}
+}

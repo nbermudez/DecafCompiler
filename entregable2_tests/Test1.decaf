@@ -1,0 +1,41 @@
+class Test1 {
+	int a;
+	void x;
+
+	int potato() {
+		x = y;
+	}
+
+	int main(int x) {
+		x = potato();
+		a = asd(1,2);
+		a = funct2(1, 2 , 2);
+		a = funct3();
+		x = funct2(1,false);
+	}
+
+	int funct2(int x, int y, boolean z){}
+
+	boolean funct3() {
+		return a;
+		while (true) {
+			continue;
+			continue;
+			{
+				return x;
+			}
+		}
+	}
+
+	boolean test(int xxx, int xx, int xxx) {}
+
+	int funtc4() {
+		return false;
+	}
+
+	void a() {
+		return false;
+		return 1;
+		return;
+	}
+}

@@ -38,6 +38,8 @@ void inline FreeList(list<T> *l)
 template <typename T>
 string inline ListToString(list<T> *l, string separator, bool include_last_separator)
 {
+	if (l == NULL)
+		return "";
 	typename list<T>::iterator it = l->begin();
 	ostringstream out;
 

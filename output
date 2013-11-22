@@ -1,0 +1,166 @@
+.data
+aaaaa: .word 10
+array: .space 40 # 10 integers
+bbbbb1: .word 20
+t: .word 1
+x: .word 0
+y: .word 0
+z: .word 0
+string_0: .asciiz "hola mundo \n"
+
+
+.text
+GreatestCommonDivisor:
+j main
+
+ gcd:
+   la $t0, b
+   sw $t0, 0($t0)
+   li $t1, 0
+  seq $t0, $t0, $t1
+  beq $t0, $zero, else_label_0
+     la $t1, a
+     sw $t1, 0($t1)
+    move $v0, $t1
+    jr $ra
+
+  else_label_0:
+      la $t2, b
+      sw $t2, 0($t2)
+     move $a0 ,$t2
+       la $t3, a
+       sw $t3, 0($t3)
+       la $t4, b
+       sw $t4, 0($t4)
+      rem $t3, $t3, $t4
+     move $a1 ,$t3
+     jal gcd
+    move $v0, $v0
+    jr $ra
+
+    la $t4, string_0
+  move $a0, $t4
+  li $v0, 4
+  syscall
+
+  
+ main:
+   la $t0, z
+    la $t1, x
+    sw $t1, 0($t1)
+   move $a0 ,$t1
+    la $t2, y
+    sw $t2, 0($t2)
+   move $a1 ,$t2
+   jal gcd
+  sw $v0, 0($t0)
+   la $t0, z
+    la $t3, x
+    sw $t3, 0($t3)
+   move $a2 ,$t3
+    la $t4, y
+    sw $t4, 0($t4)
+   move $a3 ,$t4
+   jal gcd
+  sw $v0, 0($t0)
+   la $t0, z
+    la $t5, x
+    sw $t5, 0($t5)
+   move NOREG ,$t5
+    la $t6, y
+    sw $t6, 0($t6)
+   move NOREG ,$t6
+   jal gcd
+  sw $v0, 0($t0)
+   la $t0, z
+    la $t7, x
+    sw $t7, 0($t7)
+   move NOREG ,$t7
+    la NOREG, y
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+   jal gcd
+  sw $v0, 0($t0)
+   la $t0, z
+    la NOREG, x
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+    la NOREG, y
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+   jal gcd
+  sw $v0, 0($t0)
+   la $t0, z
+    la NOREG, x
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+    la NOREG, y
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+   jal gcd
+  sw $v0, 0($t0)
+   la $t0, z
+    la NOREG, x
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+    la NOREG, y
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+   jal gcd
+  sw $v0, 0($t0)
+   la $t0, z
+    la NOREG, x
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+    la NOREG, y
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+   jal gcd
+  sw $v0, 0($t0)
+   la $t0, z
+    la NOREG, x
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+    la NOREG, y
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+   jal gcd
+  sw $v0, 0($t0)
+   la $t0, z
+    la NOREG, x
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+    la NOREG, y
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+   jal gcd
+  sw $v0, 0($t0)
+   la $t0, z
+    la NOREG, x
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+    la NOREG, y
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+   jal gcd
+  sw $v0, 0($t0)
+   la $t0, z
+    la NOREG, x
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+    la NOREG, y
+    sw NOREG, 0(NOREG)
+   move NOREG ,NOREG
+   jal gcd
+  sw $v0, 0($t0)
+   la $t0, z
+   sw $t0, 0($t0)
+  move $a0, $t0
+  li $v0, 1
+  syscall
+    la NOREG, string_0
+  move $a0, NOREG
+  li $v0, 4
+  syscall
+ li $v0, 10
+ syscall

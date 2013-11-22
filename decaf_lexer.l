@@ -19,7 +19,7 @@
 
 DIGIT    [0-9]
 LETTER   [a-zA-Z]
-
+%x comment
 %%
 
 "class"		{ BeginToken(yytext, yylloc); return K_CLASS; }
@@ -78,9 +78,17 @@ LETTER   [a-zA-Z]
 "]"		{ BeginToken(yytext, yylloc); return ']'; }
 "="		{ BeginToken(yytext, yylloc); return '='; }
 "!"		{ BeginToken(yytext, yylloc); return '!'; }
-"//".*"\n"	{ BeginToken(yytext, yylloc); };
+"//".*"\n"		{ printf("aki2\n");BeginToken(yytext, yylloc); }
+
+"/*"         BEGIN(comment);
+<comment>[^*\n]*        /* eat anything that's not a '*' */
+<comment>"*"+[^*/\n]*   /* eat up '*'s not followed by '/'s */
+<comment>\n             { yylloc->last_line++; yylloc->first_column = 0; }
+<comment>"*"+"/"        BEGIN(INITIAL);
+
 [ \t]+		{ BeginToken(yytext, yylloc); }
-"\n"		{ yylloc->last_line++; yylloc->first_column = 0; }
+"\n"		{ printf("aki\n");yylloc->last_line++; yylloc->first_column = 0; }
+"\r\n"		{ yylloc->last_line++; yylloc->first_column = 0; }
 .           printf( "%d:Caracter no reconocido: #%d, %s\n", yylloc->last_line, yytext[0], yytext );
 
 %%

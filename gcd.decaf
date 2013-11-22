@@ -3,14 +3,24 @@ class GreatestCommonDivisor
 	int aaaaa = 10;
 	int bbbbb1 = 20;
 	int x, y, z;
+
+	boolean t = true;
+
+	int array[10];
 	
 	void main()
 	{
-		x = a;
-		y = b;
+		//x = a;
+		//y = b;
+		z = gcd(x, y);
+		z = gcd(x, y);
+		z = gcd(x, y);
+		z = gcd(x, y);
+		z = gcd(x, y);
 		z = gcd(x, y);
 
 		print z;
+		print "hola mundo \n";
 	}
 
 	// Funcion que calcula el maximo comun divisor
@@ -21,5 +31,6 @@ class GreatestCommonDivisor
 		} else {
 			return (gcd(b, a % b));
 		}
+		print "hola mundo \n";
 	}
 }

@@ -1,0 +1,79 @@
+class testScopes {
+	int arr[10];
+	
+	void printArr(){
+		int i,x;
+		i = 0;
+		print "print usando ciclo for\n";
+		for (i=0; i< 10; i=i+1){
+			print arr[i], "\n";
+		}
+		i = 0;
+		print "print usando ciclo while\n";
+		while(i<10){
+			print i, ", ",arr[i], "\n";
+			i = i+1;
+		}
+		print "termino usando ciclo\n";
+		{
+			x = 0;
+			print arr[x], "\n";
+			x = x + 1;
+			print arr[x], "\n";
+			x = x + 1;
+			print arr[x], "\n";
+			x = x + 1;
+			print arr[x], "\n";
+			x = x + 1;
+			print arr[x], "\n";
+			x = x + 1;
+			print arr[x], "\n";
+		}
+	}
+	
+	void main(){
+		int x;
+		x = 1;
+		print x, "\n";
+		{
+			int y;
+			y = 2;
+			print x+y, "\n";
+		}print x, "\n";
+		print "---------------------------\n";
+		print "testing print de arreglos\n";
+		
+		arr[1] = -3;
+		arr[0] = 10;
+		arr[2] = arr[0] - arr[1];
+		{
+			arr[0] = 5;
+			x = 0;
+			print x, ", ", arr[x], "\n";
+			x = x + 1;
+			print x, ", ", arr[x], "\n";
+			x = x + 1;
+			print x, ", ", arr[x], "\n";
+			if(true){}
+			x = x + 1;
+			{
+				print x, ", ", arr[x], "\n";
+				x = x + 1;
+			}
+			print "x: ", x, "\n";
+			{
+				print x, ", ", arr[x], "\n";
+				{
+					x = x + 1;
+					print x, ", ", arr[x], "\n";
+				}
+			}
+		}
+		print "otro arr[0]", arr[0], "\n";
+		print "antes de llamada a printArr................\n";
+		printArr();
+		
+		read arr[0];
+		print "despues de leer: ", arr[0], "\n";
+	}
+}

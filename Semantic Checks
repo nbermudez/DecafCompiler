@@ -1,0 +1,23 @@
+Semantic Checks
+1. Type mismatch in assignment ----------------------------done
+2. break outside loop -------------------------------------done
+3. continue outside loop ----------------------------------done
+4. undefined variable
+5. type mismatch for operators ----------------------------done
+	binary ------------------------------------------------done
+	unary -------------------------------------------------done
+6. variable not an array ----------------------------------done
+7. uninitialized variable
+8. undefined method ---------------------------------------done
+9. no main method -----------------------------------------done
+10. main method must be void ------------------------------done
+11. main method cannot have parameters --------------------done
+12. unreachable statement ---------------------------------done
+13. already defined variable
+14. index out of bound (in code generation)
+15. array index must be int -------------------------------done
+16. duplicated parameter in function ----------------------done
+17. type check in method call arguments -------------------done
+18. same number of arguments for declaration and call -----done
+19. array size greater than 0 -----------------------------done
+20. void methods cannot return an expression --------------done

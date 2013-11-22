@@ -1,0 +1,173 @@
+%decls %{
+	class SimpleVariable;
+	typedef list<SimpleVariable*> SimpleVariableList;
+
+	class Function;
+	typedef map<string, Function*> FunctionsMap;
+
+	class Variable;
+	typedef map<string, Variable*> VariablesMap;
+
+	class LocalVariable;
+	typedef map<string, LocalVariable*> LocalVariablesMap;
+
+	typedef map<string, string> StringsMap;
+%}
+
+%{
+	static SymbolTable *symbol_table = NULL;
+%}
+
+%node Function %typedef = {
+	%nocreate Type 						type;
+	%nocreate DecoratedBlockStatement	*body = {0};
+	%nocreate SimpleVariableList		parameters;
+	%nocreate int 						activation_size = {4}; // 4 por $ra
+}
+
+%operation %virtual void setBody([Function *this], DecoratedBlockStatement *body);
+
+setBody(Function) {
+	this->body = body;
+}
+
+%operation %virtual Variable *getParameter([Function *this], int parameterId);
+
+getParameter(Function) {
+	if (parameterId > parameters.size() || parameterId < 0) {
+		return NULL;
+	}
+	int i = 0;
+	list<SimpleVariable*>::iterator it = parameters.begin();
+
+	while (it != parameters.end()) {
+		if (i == parameterId)
+			return (*it);
+		it++;
+		i++;
+	}
+	return NULL;
+}
+
+%operation %virtual Variable* findParameter([Function *this], string parameterName);
+
+findParameter(Function) {
+	list<SimpleVariable*>::iterator it = parameters.begin();
+
+	while (it != parameters.end()) {
+		if ((*it)->variable_name == parameterName)
+			return (*it);
+		it++;
+	}
+	return NULL;
+}
+
+/**********************************************************************************/
+
+%node Variable %abstract %typedef = {
+	ExpressionType	*type;
+	string variable_name;
+	%nocreate bool initialized = {false};
+}
+
+%node SimpleVariable Variable = {
+	%nocreate DecoratedExpression *initial_value = {0};
+	%nocreate int parameterId = {0};
+}
+
+%node ArrayVariable Variable = {
+	int				size;
+}
+
+%node LocalVariable %typedef = {
+	ExpressionType  *type;
+	string			variable_name;
+}
+
+/**********************************************************************************/
+
+%node SymbolTable %typedef = {
+	%nocreate FunctionsMap 	functions;
+	%nocreate VariablesMap 	variables;
+	%nocreate StringsMap  	strings;
+}
+
+%operation %virtual void registerFunction([SymbolTable *this], string name, Function *function);
+
+registerFunction(SymbolTable) {
+	this->functions[name] = function;
+}
+
+%operation %virtual void registerVariable([SymbolTable *this], string name, Variable *variable);
+
+registerVariable(SymbolTable) {
+	this->variables[name] = variable;
+}
+
+%operation %virtual void registerString([SymbolTable *this], string stringValue);
+
+registerString(SymbolTable) {
+	if (this->strings.count(stringValue) == 0)
+		this->strings[stringValue] = getStringLabel();
+}
+
+%operation %virtual int getFunctionsCount(SymbolTable *this);
+
+getFunctionsCount(SymbolTable) {
+	return this->functions.size();
+}
+
+%operation SymbolTable* getSymbolTableInstance();
+
+getSymbolTableInstance() {
+	if (symbol_table == NULL)
+		symbol_table = new SymbolTable;
+
+	return symbol_table;
+}
+
+%operation %virtual Function* getFunction([SymbolTable *this], string name);
+
+getFunction(SymbolTable) {
+	if (this->functions.count(name)>0)
+		return this->functions[name];
+	else
+		return NULL;
+}
+
+%operation %virtual Variable* getVariable([SymbolTable *this], string variable_name);
+
+getVariable(SymbolTable) {
+	if (this->variables.count(variable_name) > 0) {
+		return this->variables[variable_name];
+	} else {
+		return NULL;
+	}
+}
+
+%operation %virtual string getString([SymbolTable *this], string string_key);
+
+getString(SymbolTable) {
+	if (this->strings.count(string_key) > 0)
+		return this->strings[string_key];
+	else
+		return NULL;
+}
+
+%operation %virtual FunctionsMap* getFunctions(SymbolTable *this);
+
+getFunctions(SymbolTable) {
+	return &(this->functions);
+}
+
+%operation %virtual VariablesMap* getVariables(SymbolTable *this);
+
+getVariables(SymbolTable) {
+	return &(this->variables);
+}
+
+%operation %virtual StringsMap* getStrings(SymbolTable *this);
+
+getStrings(SymbolTable) {
+	return &(this->strings);
+}

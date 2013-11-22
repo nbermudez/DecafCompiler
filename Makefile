@@ -26,7 +26,7 @@ ${DECAF_LEXER}:	decaf_lexer.l ${DECAF_TOKENS}
 	flex -o $@ $<
 	
 ${DECAF_GRAMMAR} ${DECAF_TOKENS}: decaf_grammar.y
-	bison --defines=${DECAF_TOKENS} -r all -o ${DECAF_GRAMMAR} $<
+	bison --defines=${DECAF_TOKENS} -r all -o ${DECAF_GRAMMAR} $< -v
 
 ${DECAF_TREE}: ${DECAF_TREE_DEF}
 	treecc --output decaf_tree.cpp --header decaf_tree.h $<

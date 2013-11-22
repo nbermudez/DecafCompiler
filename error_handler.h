@@ -1,6 +1,8 @@
 #include <iostream>
 #include <list>
+#include <sstream>
 #include <string>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -11,8 +13,9 @@ public:
         return instance;
     }
     
-    void handleError(string errorMessage);
-    void handleWarning(string errorWarning);
+    void handleFatal(int line, string fatalMessage);
+    void handleError(int line, string errorMessage);
+    void handleWarning(int line, string errorWarning);
     string allErrors();
     string allWarnings();
 

@@ -1,29 +1,7 @@
 #include "register_manager.h"
 
 RegisterManager::RegisterManager() {
-	for (int i = 0; i < 8; i++) {
-        ostringstream out;
-        out << "$t" << i;
-        tempRegisters[out.str()] = 0;
-    }
-
-    for (int i = 0; i < 2; i++) {
-        ostringstream out;
-        out << "$v" << i;
-        returnRegisters[out.str()] = 0;
-    }
-
-    for (int i = 0; i < 8; i++) {
-        ostringstream out;
-        out << "$s" << i;
-        savedRegisters[out.str()] = 0;
-    }
-
-    for (int i = 0; i < 4; i++) {
-        ostringstream out;
-        out << "$a" << i;
-        paramRegisters[out.str()] = 0;
-    }
+	freeAllRegisters();
 }
 
 void RegisterManager::freeRegister(string reg) {
@@ -38,6 +16,45 @@ void RegisterManager::freeRegister(string reg) {
 	}
 }
 
+void RegisterManager::freeTempRegisters() {
+	for (int i = 0; i < 8; i++) {
+        ostringstream out;
+        out << "$t" << i;
+        tempRegisters[out.str()] = 0;
+    }
+}
+
+void RegisterManager::freeParamRegisters() {
+	for (int i = 0; i < 4; i++) {
+        ostringstream out;
+        out << "$a" << i;
+        paramRegisters[out.str()] = 0;
+    }
+}
+
+void RegisterManager::freeSavedRegisters() {
+	for (int i = 0; i < 8; i++) {
+        ostringstream out;
+        out << "$s" << i;
+        savedRegisters[out.str()] = 0;
+    }
+}
+
+void RegisterManager::freeReturnRegisters() {
+	for (int i = 0; i < 2; i++) {
+        ostringstream out;
+        out << "$v" << i;
+        returnRegisters[out.str()] = 0;
+    }
+}
+
+void RegisterManager::freeAllRegisters() {
+	freeTempRegisters();
+    freeReturnRegisters();
+    freeSavedRegisters();
+    freeParamRegisters();
+}
+
 string RegisterManager::getTempRegister() {
 	map<string, int>::iterator it = tempRegisters.begin();
 
@@ -48,7 +65,7 @@ string RegisterManager::getTempRegister() {
 		}
 		it++;
 	}
-	return "NOREG";
+	return "NOTMPREG";
 }
 
 string RegisterManager::getSavedRegister() {
@@ -61,7 +78,7 @@ string RegisterManager::getSavedRegister() {
 		}
 		it++;
 	}
-	return "NOREG";
+	return "NOSAVEDREG";
 }
 
 string RegisterManager::getReturnRegister() {
@@ -74,6 +91,19 @@ string RegisterManager::getReturnRegister() {
 		}
 		it++;
 	}
-	return "NOREG";
+	return "NORETREG";
+}
+
+string RegisterManager::getParamRegister() {
+	map<string, int>::iterator it = paramRegisters.begin();
+
+	while (it != paramRegisters.end()) {
+		if (it->second == 0) {
+			paramRegisters[it->first] = 1;
+			return it->first;
+		}
+		it++;
+	}
+	return "NOPARAMREG";
 }
 

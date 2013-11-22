@@ -36,6 +36,7 @@ VariableDefList *SetType(VariableDefList *list, Type type)
 	ParameterDef		*parameter_def;
 	ParameterDefList	*parameter_def_list;
 	VariableDefList		*variable_def_list;
+	LocalVariableDefList *local_variable_def_list;
 	StatementList		*statement_list;
 	MethodDefList		*method_def_list;
 	ClassDef		*class_def;
@@ -50,6 +51,10 @@ VariableDefList *SetType(VariableDefList *list, Type type)
 
 %locations
 %pure_parser
+
+%token ';'
+%token ','
+%token '('
 
 %token<string> ID "'identificador'"
 
@@ -86,18 +91,20 @@ VariableDefList *SetType(VariableDefList *list, Type type)
 %type<expression> opt_expr expr bool_term relational_expr bit_shift_expr arith_expr arith_term factor constant bool_constant
 %type<expression> print_argument lvalue opt_array_dimension optional_initialization
 %type<expression_list> opt_method_call_argument_list method_call_argument_list read_argument_list print_argument_list
-%type<variable_def> var
-%type<variable_def_list> field_decl field_decl_list var_list optional_field_decl_list
 %type<method_def> method_decl
 %type<method_def_list> optional_method_decl_list method_decl_list
+%type<variable_def> var
+%type<variable_def_list> field_decl field_decl_list var_list
 %type<parameter_def> parameter_decl
 %type<parameter_def_list> opt_parameter_decl_list parameter_decl_list
 %type<class_def> class_def
 %type<string> class_name method_name
 %type<statement_list>	opt_statement_list statement_list
-%type<type> return_type type
+%type<type> type
+%type<statement> local_variable_decl
+%type<string> local_variable
+%type<local_variable_def_list> local_variable_list
 
-%expect 4
 
 %%
 
@@ -106,13 +113,8 @@ program
 ;
 
 class_def :
-		K_CLASS class_name '{' optional_field_decl_list optional_method_decl_list '}'
+		K_CLASS class_name '{' field_decl_list optional_method_decl_list '}'
 		{ $$ = new ClassDef($2, $4, $5); }
-;
-
-optional_field_decl_list:
-				field_decl_list		{ $$ = $1; }
-				| /*Nada*/		{ $$ = 0; }
 ;
 
 optional_method_decl_list:
@@ -122,12 +124,12 @@ optional_method_decl_list:
 
 field_decl_list:
 			field_decl_list field_decl	{ $$ = $1; $$->insert($$->end(), $2->begin(), $2->end()); delete $2;}
-			| field_decl			{ $$ = $1; }
+			| /*Nada*/					{ $$ = new VariableDefList; }
 ;
 
 method_decl_list:
 			method_decl_list method_decl	{ $$ = $1; $$->push_back($2); }
-			| method_decl			{ $$ = new MethodDefList; $$->push_back($1); }
+			| method_decl					{ $$ = new MethodDefList; $$->push_back($1); }
 ;
 
 class_name
@@ -165,23 +167,18 @@ optional_initialization:
 
 
 method_decl
-	:	return_type ID '(' opt_parameter_decl_list ')' block
+	:	type ID '(' opt_parameter_decl_list ')' block
 		{
-			$$ = new MethodDef($2); 
+			$$ = new MethodDef($2, @1.last_line); 
 			$$->method_return_type = $1;
 			$$->method_parameters = $4;
 			$$->method_body =  $6;
 		}
 ;
 
-return_type:	
-		type		{ $$ = $1; }
-		| K_VOID	{ $$ = Void; }
-;
-
 opt_parameter_decl_list:
 			parameter_decl_list 	{ $$ = $1; }
-			| /*Nada*/		{ $$ = 0; }
+			| /*Nada*/		{ $$ = new ParameterDefList; }
 ;
 
 parameter_decl_list:	
@@ -205,12 +202,13 @@ block
 ;
 
 opt_statement_list:	statement_list	{ $$ = $1; }
-			| /*Nada*/	{ $$ = 0; }
+			| /*Nada*/	{ $$ = new StatementList; }
 ;
 
 type	:	
 		K_INT		{ $$ = Int; }
 		| K_BOOLEAN	{ $$ = Boolean; }
+		| K_VOID	{ $$ = Void; }
 ;
 
 statement_list:
@@ -228,6 +226,8 @@ statement
 		| break_statement ';'		{ $$ = $1; }
 		| continue_statement ';'	{ $$ = $1; }
 		| block 			{ $$ = $1; }
+		| local_variable_decl ';' {$$ = $1; }
+
 ;
 		
 assign	:
@@ -237,7 +237,7 @@ assign	:
 method_call:
 		method_name '(' opt_method_call_argument_list ')'	{ $$ = new MethodCallStatement(@1.first_line, @1.first_column, $1, $3); }	
 		| K_PRINT print_argument_list				{ $$ = new PrintStatement(@1.first_line, @1.first_column, $2); }
-		| K_READ read_argument_list				{ $$ = new MethodCallStatement(@1.first_line, @1.first_column, "read", $2); }
+		| K_READ read_argument_list				{ $$ = new ReadStatement(@1.first_line, @1.first_column, $2); }
 ;
 
 method_name
@@ -315,7 +315,7 @@ continue_statement:
 
 opt_expr:
 		expr		{ $$ = $1; }
-		| /*Nada*/	{ $$ = 0; }
+		| /*Nada*/	{ $$ = NULL; }
 ;
 
 expr	:	
@@ -364,4 +364,18 @@ constant:	INT_CONSTANT 	{ $$ = new IntConstantExpression($1); }
 bool_constant:
 		K_TRUE		{ $$ = new BooleanConstantExpression(true); }
 		| K_FALSE	{ $$ = new BooleanConstantExpression(false); }
+;
+
+local_variable_decl:
+		type local_variable_list   {$$ = $2; ((LocalVariableDefList*)$$)->variable_type = $1; }
+;
+
+local_variable_list: local_variable_list ',' local_variable   {$$ = $1; $$->variable_names->push_back($3);}
+					|local_variable 						  {$$ = new LocalVariableDefList(@1.first_line, @1.first_column);
+															   $$->variable_names = new list<string>();
+															   $$->variable_names->push_back($1);
+															  }
+;
+
+local_variable: ID {$$ = $1; }
 ;

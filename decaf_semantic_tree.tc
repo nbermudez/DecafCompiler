@@ -1,19 +1,26 @@
 %{
-    #include "data_layout/register_utils.h"
     #include "label_manager.h"
 
     string indent(int count) {
         ostringstream out;
-        out << string(count, '\t');
-        return "";
-        //return out.str();
+        out << string(count, ' ');
+        return out.str();
     }
+    int string_count = 0;
+    string getStringLabel() {
+        ostringstream out;
+
+        out << "string_" << string_count++;
+
+        return out.str();
+    }
+
 %}
 
 /*=====================================================================*/
 /********************* Classes for Decorated Nodes *********************/
 /*=====================================================================*/
-%node DecoratedNode %abstract %typedef
+%node DecoratedNode %abstract %typedef 
 /*=====================================================================*/
 /*** Decorated Class ***/
 %node DecoratedClass DecoratedNode = {
@@ -25,6 +32,7 @@
 %node DecoratedExpression DecoratedNode %abstract = {
     ExpressionType  *type;
     %nocreate string place = {""};
+    %nocreate int line = {0};
 }
 
 %node DecoratedBinaryExpression DecoratedExpression %abstract = {
@@ -72,6 +80,9 @@
 %node DecoratedLValue DecoratedExpression = {
     string variable_name;
     DecoratedExpression *array_index;
+
+    %nocreate int deepLevel = {0};
+    %nocreate int offset = {0};
 }
 
 %node DecoratedMethodCallExpression DecoratedExpression = {
@@ -81,7 +92,9 @@
 
 /*=====================================================================*/
 /************** Decorated Statements Tree **************/
-%node DecoratedStatement DecoratedNode %abstract
+%node DecoratedStatement DecoratedNode %abstract = {
+    int line;
+}
 
 %node DecoratedAssignmentStatement DecoratedStatement = {
     DecoratedLValue *lvalue;
@@ -90,6 +103,15 @@
 
 %node DecoratedMethodCallStatement DecoratedStatement = {
     %nocreate int                     method_index = {0};
+    string name;
+    DecoratedExpressionList *arguments;
+}
+
+%node DecoratedPrintStatement DecoratedStatement = {
+    DecoratedExpressionList *arguments;
+}
+
+%node DecoratedReadStatement DecoratedStatement = {
     DecoratedExpressionList *arguments;
 }
 
@@ -105,10 +127,10 @@
 }
 
 %node DecoratedForStatement DecoratedStatement = {
-    DecoratedStatement  *assignment_list1;
-    DecoratedExpression *condition;
-    DecoratedStatement  *assignment_list2;
-    DecoratedStatement  *loop_body;
+    DecoratedStatement      *assignment_list1;
+    DecoratedExpression     *condition;
+    DecoratedStatement      *assignment_list2;
+    DecoratedStatement      *loop_body;
 }
 
 %node DecoratedReturnStatement DecoratedStatement = {
@@ -120,6 +142,8 @@
 
 %node DecoratedBlockStatement DecoratedStatement = {
     DecoratedStatementList  *statement_list;
+    %nocreate DecoratedBlockStatement *parent = {NULL};
+    %nocreate int deepLevel = {0};
 }
 
 /*=====================================================================*/
@@ -132,8 +156,8 @@ generateCode(DecoratedAddExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
@@ -150,8 +174,8 @@ generateCode(DecoratedSubExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
@@ -168,8 +192,8 @@ generateCode(DecoratedMultExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
@@ -186,8 +210,8 @@ generateCode(DecoratedDivExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
@@ -204,8 +228,8 @@ generateCode(DecoratedModExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
@@ -222,13 +246,24 @@ generateCode(DecoratedAndExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
+
+    string lblFalse, lblEnd;
+    lblFalse = LabelManager::getInstance().getFalseLabel();
+    lblEnd = LabelManager::getInstance().getEndLabel();
     
-    out << indent(indentLevel) << "and " << reg << ", " <<left->place << ", " << right->place << endl;
+    out << indent(indentLevel) << "beq " << left->place << ", $zero, " << lblFalse << endl;
+    out << indent(indentLevel) << "beq " << right->place << ", $zero, " << lblFalse << endl;
+    out << indent(indentLevel) << "li " << reg << ", 1" << endl;
+    out << indent(indentLevel) << "j " << lblEnd;
+    out << indent(indentLevel) << lblFalse << ":" << endl;
+    out << indent(indentLevel) << "li " << reg << ", 0" << endl;
+    out << indent(indentLevel) << lblEnd << endl;
+
     this->place = reg;
     
     return out.str();
@@ -240,13 +275,25 @@ generateCode(DecoratedOrExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
+
+    string lblTrue, lblEnd;
+
+    lblTrue = LabelManager::getInstance().getTrueLabel();
+    lblEnd = LabelManager::getInstance().getEndLabel();
     
-    out << indent(indentLevel) << "or " << reg << ", " <<left->place << ", " << right->place << endl;
+    out << indent(indentLevel) << "bne " << left->place << ", $zero, " << lblTrue << endl;
+    out << indent(indentLevel) << "bne " << right->place << ", $zero, " << lblTrue << endl;
+    out << indent(indentLevel) << "li " << reg << ", 0" << endl;
+    out << indent(indentLevel) << "j " << lblEnd;
+    out << indent(indentLevel) << lblTrue << ":" << endl;
+    out << indent(indentLevel) << "li " << reg << ", 1" << endl;
+    out << indent(indentLevel) << lblEnd << endl;
+
     this->place = reg;
     
     return out.str();
@@ -258,8 +305,8 @@ generateCode(DecoratedGTExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
@@ -276,8 +323,8 @@ generateCode(DecoratedLTExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
@@ -294,8 +341,8 @@ generateCode(DecoratedGTEExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
@@ -312,8 +359,8 @@ generateCode(DecoratedLTEExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
@@ -330,8 +377,8 @@ generateCode(DecoratedEqExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
@@ -348,8 +395,8 @@ generateCode(DecoratedNotEqExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
@@ -366,13 +413,13 @@ generateCode(DecoratedRShiftExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
     
-    out << indent(indentLevel) << "sarv " << reg << ", " <<left->place << ", " << right->place << endl;
+    out << indent(indentLevel) << "srlv " << reg << ", " <<left->place << ", " << right->place << endl;
     this->place = reg;
     
     return out.str();
@@ -384,17 +431,13 @@ generateCode(DecoratedLShiftExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
     
-    string reg_neg;
-    reg_neg = RegisterManager::getInstance().getTempRegister();
-    
-    out << indent(indentLevel) << "sub " << reg_neg << ", $zero, " << right->place << endl;
-    out << indent(indentLevel) << "sarv " << reg << ", " <<left->place << ", " << reg_neg << endl;
+    out << indent(indentLevel) << "sllv " << reg << ", " <<left->place << ", " << right->place << endl;
     this->place = reg;
     
     return out.str();
@@ -406,8 +449,8 @@ generateCode(DecoratedRotExpression) {
     out << left->generateCode(indentLevel + 1);
     out << right->generateCode(indentLevel + 1);
     
-    freeRegister(left->place);
-    freeRegister(right->place);
+    RegisterManager::getInstance().freeRegister(left->place);
+    RegisterManager::getInstance().freeRegister(right->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
@@ -423,7 +466,7 @@ generateCode(DecoratedNotExpression) {
     
     out << expression->generateCode(indentLevel + 1);
     
-    freeRegister(expression->place);
+    RegisterManager::getInstance().freeRegister(expression->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
@@ -439,7 +482,7 @@ generateCode(DecoratedNegExpression) {
     
     out << expression->generateCode(indentLevel + 1);
     
-    freeRegister(expression->place);
+    RegisterManager::getInstance().freeRegister(expression->place);
     
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
@@ -470,14 +513,23 @@ generateCode(DecoratedIntConstant) {
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
 
-    out << indent(indentLevel) << "li " << reg << ", " << value;
+    out << indent(indentLevel) << "li " << reg << ", " << value << endl;
     this->place = reg;
 
     return out.str();
 }
 
 generateCode(DecoratedStringConstant) {
-    
+    ostringstream out;
+
+    string reg;
+    reg = RegisterManager::getInstance().getTempRegister();
+
+    out << indent(indentLevel + 1) << "la " << reg << ", " 
+        << getSymbolTableInstance()->getString(value) << endl;
+    this->place = reg;
+
+    return out.str();
 }
 
 generateCode(DecoratedLValue) {
@@ -486,11 +538,22 @@ generateCode(DecoratedLValue) {
     string reg;
     reg = RegisterManager::getInstance().getTempRegister();
 
-    out << indent(indentLevel) << "la " << reg << ", " << variable_name << endl;
-    if (array_index != NULL) {
-        out << indent(indentLevel) << "add " << reg << ", " << reg << ", " << array_index->place << endl;
+    Variable* var = currentFunction->findParameter(variable_name);
+    if (var != NULL) {
+        out << indent(indentLevel) << "move " << reg << ", " << "$a" << ((SimpleVariable*)var)->parameterId << endl;
+    } else {
+
+        out << indent(indentLevel) << "la " << reg << ", " << variable_name << endl;
+        if (array_index != NULL) {
+            out << array_index->generateCode(indentLevel + 1);
+            out << indent(indentLevel + 1) << "sll " << array_index->place 
+                << ", " << array_index->place << ", 2" << endl;
+            out << indent(indentLevel) << "add " << reg << ", " << reg << ", " 
+                << array_index->place << endl;
+        }
+        out << indent(indentLevel) << "lw " << reg << ", 0(" << reg << ")" << endl;
+        
     }
-    out << indent(indentLevel) << "sw " << reg << ", 0(" << reg << ")" << endl;
     this->place =  reg;
 
     return out.str();
@@ -502,14 +565,25 @@ generateCode(DecoratedMethodCallExpression) {
     list<DecoratedExpression*>::iterator it = arguments->begin();
     int argc = 0;
     while (it != arguments->end()) {
+        DecoratedExpression *argument = (*it);
         if (argc < 5) {
             //usar $a0...$a4
+            string param;
+            param = RegisterManager::getInstance().getParamRegister();
+
+            out << argument->generateCode(indentLevel + 1);
+            out << indent(indentLevel) << "move " << param << " ," << argument->place << endl;
+            RegisterManager::getInstance().freeRegister(argument->place);
         } else {
             //poner en la pila
         }
         it++;
     }
+    //TODO:save registers
     out << indent(indentLevel) << "jal " << name << endl;
+    //TODO:restore registers
+
+    RegisterManager::getInstance().freeParamRegisters();
     
     this->place = "$v0";
 
@@ -524,11 +598,83 @@ generateCode(DecoratedAssignmentStatement) {
     out << value->generateCode(indentLevel + 1);
     out << indent(indentLevel) << "sw " << value->place << ", 0(" << lvalue->place << ")" << endl;
 
+    RegisterManager::getInstance().freeRegister(lvalue->place);
+    RegisterManager::getInstance().freeRegister(value->place);
+
     return out.str();
 }
 
 generateCode(DecoratedMethodCallStatement) {
     ostringstream out;
+
+    list<DecoratedExpression*>::iterator it = arguments->begin();
+    int argc = 0;
+    while (it != arguments->end()) {
+        DecoratedExpression *argument = (*it);
+        if (argc < 5) {
+            //usar $a0...$a4
+            string param;
+            param = RegisterManager::getInstance().getParamRegister();
+
+            out << argument->generateCode(indentLevel + 1);
+            out << indent(indentLevel) << "move " << param << " ," << argument->place << endl;
+            RegisterManager::getInstance().freeRegister(argument->place);
+        } else {
+            //poner en la pila
+        }
+        it++;
+    }
+    //TODO:save registers
+    out << indent(indentLevel) << "jal " << name << endl;
+    //TODO:restore registers
+
+    RegisterManager::getInstance().freeParamRegisters();
+
+    return out.str();
+}
+
+generateCode(DecoratedPrintStatement) {
+    ostringstream out;
+
+    list<DecoratedExpression *>::iterator argument = arguments->begin();
+    while (argument != arguments->end()) {
+        DecoratedExpression *expression = (*argument);
+
+        out << expression->generateCode(indentLevel + 1);
+
+        int printType = 4;
+        if (!expression->type->isEquivalent(new StringType()))
+            printType = 1;
+
+        out << indent(indentLevel) << "move $a0, " << expression->place << endl;
+        out << indent(indentLevel) << "li $v0, " << printType << endl;
+        out << indent(indentLevel) << "syscall" << endl;
+
+        RegisterManager::getInstance().freeRegister(expression->place);
+
+        argument++;
+    }
+
+    return out.str();
+}
+
+generateCode(DecoratedReadStatement) {
+    ostringstream out;
+
+    list<DecoratedExpression *>::iterator argument = arguments->begin();
+    while (argument != arguments->end()) {
+        DecoratedLValue *arg = (DecoratedLValue*)(*argument);       
+        
+        out << indent(indentLevel) << "li $v0, 5" << endl;
+        out << indent(indentLevel) << "syscall" << endl;
+
+        out << arg->getLocation(indentLevel + 1);
+
+        //TODO: con variables locales donde se guardará?
+        out << indent(indentLevel) << "sw $v0, 0(" << arg->place << ")" << endl;
+
+        argument++;
+    }
 
     return out.str();
 }
@@ -554,11 +700,64 @@ generateCode(DecoratedIfStatement) {
 generateCode(DecoratedWhileStatement) {
     ostringstream out;
 
+    string whileLabel;
+    string outOfWhileLabel;
+    whileLabel = LabelManager::getInstance().getWhileLabel();
+    outOfWhileLabel = LabelManager::getInstance().getOutOfWhileLabel();
+
+    LabelManager::getInstance().pushBreakPoint(outOfWhileLabel);
+    LabelManager::getInstance().pushContinuePoint(whileLabel);
+
+    out << indent(indentLevel) << whileLabel << ":" << endl;
+
+    out << condition->generateCode(indentLevel + 1) ;
+    out << indent(indentLevel + 1) << "beq " << condition->place << ", $zero, " << outOfWhileLabel << endl;
+
+    out << loop_body->generateCode(indentLevel + 1);
+    out << indent(indentLevel) << "j " << whileLabel << endl;
+
+    out << indent(indentLevel) << outOfWhileLabel << ":" << endl;
+
+    LabelManager::getInstance().popContinuePoint();
+    LabelManager::getInstance().popCurrentBreakPoint();
+
     return out.str();
 }
 
 generateCode(DecoratedForStatement) {
     ostringstream out;
+
+    string forLabel;
+    string outOfForLabel;
+    string continuePoint;
+
+    forLabel = LabelManager::getInstance().getForLabel();
+    outOfForLabel = LabelManager::getInstance().getOutOfForLabel();
+    continuePoint = LabelManager::getInstance().getContinueLabel();
+
+
+    LabelManager::getInstance().pushBreakPoint(outOfForLabel);
+    LabelManager::getInstance().pushContinuePoint(continuePoint);
+
+    out << assignment_list1->generateCode(indentLevel + 1);
+
+    out << indent(indentLevel) << forLabel << ":" << endl;
+
+    out << condition->generateCode(indentLevel + 1);
+    out << indent(indentLevel + 1) << "beq " << condition->place << ", $zero, " << outOfForLabel << endl;
+
+    out << loop_body->generateCode(indentLevel + 1);
+
+    out << indent(indentLevel + 1) << continuePoint << ": " << endl;
+    
+    out << assignment_list2->generateCode(indentLevel + 1);
+
+    out << indent(indentLevel) << "j " << forLabel << endl;
+
+    out << indent(indentLevel) << outOfForLabel << ":" << endl;
+
+    LabelManager::getInstance().popContinuePoint();
+    LabelManager::getInstance().popCurrentBreakPoint();
 
     return out.str();
 }
@@ -567,12 +766,19 @@ generateCode(DecoratedReturnStatement) {
     ostringstream out;
     if (expression != NULL) {
         out << expression->generateCode(indentLevel + 1);
+        out << indent(indentLevel) << "move $v0, " << expression->place << endl;
+
+        //epilogo
+        
     }
+    out << indent(indentLevel) << "jr $ra" << endl;
     return out.str();
 }
 
 generateCode(DecoratedBreakStatement) {
     ostringstream out;
+
+    out << indent(indentLevel) << "j " << LabelManager::getInstance().getCurrentBreakPoint() << endl;
 
     return out.str();
 }
@@ -580,19 +786,29 @@ generateCode(DecoratedBreakStatement) {
 generateCode(DecoratedContinueStatement) {
     ostringstream out;
 
+    out << indent(indentLevel) << "j " << LabelManager::getInstance().getCurrentContinuePoint() << endl;
+
     return out.str();
 }
 
 generateCode(DecoratedBlockStatement) {
+    if (deepLevel >= MAX_DEEP_NESTING) {
+        ostringstream out;
+        out << "nesting level cannot be greater than " << MAX_DEEP_NESTING;
+        ErrorHandler::getInstance().handleFatal(line, out.str());
+    }
     ostringstream out;
 
     list<DecoratedStatement*>::iterator it = statement_list->begin();
+    out << indent(indentLevel) << "# scope level " << deepLevel << endl;
 
     while (it != statement_list->end()) {
         out << (*it)->generateCode(indentLevel + 1);
 
         it++;
     }
+    out << indent(indentLevel) << "# end of scope level " << deepLevel << endl;
+
 
     return out.str();
 }
@@ -600,10 +816,78 @@ generateCode(DecoratedBlockStatement) {
 generateCode(DecoratedClass) {
     ostringstream out;
 
+    out << ".data" << endl;
+
+    /*********************** Registering Variables **********************/
+    map<string, Variable*> *variables = getSymbolTableInstance()->getVariables();
+    map<string, Variable*>::iterator variable_it = variables->begin();
+
+    while (variable_it != variables->end()) {
+        Variable *variable = variable_it->second;
+
+        out << variable_it->first ;
+        SimpleVariable *simpleVariable = dynamic_cast<SimpleVariable*>(variable);
+        if (simpleVariable != NULL) {
+            out << ": .word ";
+            if (variable->initialized) {
+                if (((DecoratedIntConstant*)simpleVariable->initial_value) != NULL)
+                    out << ((DecoratedIntConstant*)simpleVariable->initial_value)->value << endl;
+                else
+                    out << ((DecoratedBooleanConstant*)simpleVariable->initial_value)->value << endl;
+            } else {
+                out << 0 << endl;
+            }
+        } else {
+            int size = ((ArrayVariable*)variable)->size;
+            out << ": .space " << (size * 4) << " # " << size << " integers" << endl;
+        }
+        variable_it++;
+    }
+
+    /*********************** Registering Strings **********************/
+
+    map<string, string> *strings = getSymbolTableInstance()->getStrings();
+    map<string, string>::iterator string_it = strings->begin();
+
+    while (string_it != strings->end()) {
+        out << string_it->second << ": .asciiz " << string_it->first << endl;
+        string_it++;
+    }
+
+    out << endl << endl;
+
+     /*********************** Registering Functions **********************/
+
+    out << ".text" << endl;
     out << this->name << ":" << endl;
-    out << indent(indentLevel) << "main: " << endl;
-    if (main != NULL) {
-        out << indent(indentLevel) << main->generateCode(indentLevel + 1) << endl;
+    out << "j main" << endl << endl;
+
+    map<string, Function*> *functions = getSymbolTableInstance()->getFunctions();
+    map<string, Function*>::iterator function = functions->begin();
+
+    while (function != functions->end()) {
+
+        out << indent(indentLevel) << function->first << ":" << endl;
+        currentFunction = function->second;
+
+        out << indent(indentLevel) << "#prologo ..." << endl;
+        out << indent(indentLevel) << "add $sp, $sp, " << currentFunction->activation_size << endl << endl;
+        if (function->second->body != NULL)
+            out << function->second->body->generateCode(indentLevel + 1);
+
+        if (function->first == "main") {
+            out << indent(indentLevel) << "li $v0, 10" << endl;
+            out << indent(indentLevel) << "syscall" << endl;
+        }
+
+        RegisterManager::getInstance().freeAllRegisters();
+
+        out << indent(indentLevel) << "#epilogo ..." << endl;
+        out << indent(indentLevel) << "add $sp, $sp, -" << currentFunction->activation_size << endl << endl;
+
+        out << endl << endl;
+
+        function++;
     }
     return out.str();
 }
@@ -614,11 +898,15 @@ getLocation(DecoratedLValue) {
     ostringstream out;
 
     string reg;
-    reg = RegisterManager::getInstance().getTempRegister();
+    reg = RegisterManager::getInstance().getSavedRegister();
 
     out << indent(indentLevel) << "la " << reg << ", " << variable_name << endl;
     if (array_index != NULL) {
-        out << indent(indentLevel) << "add " << reg << ", " << reg << ", " << array_index->place << endl;
+        out << array_index->generateCode(indentLevel + 1);
+        out << indent(indentLevel + 1) << "sll " << array_index->place 
+            << ", " << array_index->place << ", 2" << "# multiply by 4" << endl;
+        out << indent(indentLevel) << "add " << reg << ", " << reg << ", " 
+            << array_index->place << endl;
     }
     this->place =  reg;
 

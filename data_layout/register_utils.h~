@@ -1,7 +1,0 @@
-#include <map>
-
-using namespace std;
-
-string getTempRegister() {
-    return "$t0";
-}

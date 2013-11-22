@@ -1,0 +1,7 @@
+class HelloWorld {
+	void main() {
+		print "hola ";
+		print "mundo ";
+		print "\n";
+	}
+}
