@@ -107,3 +107,22 @@ string RegisterManager::getParamRegister() {
 	return "NOPARAMREG";
 }
 
+list<string> RegisterManager::registersToSave() {
+	map<string, int>::iterator it = savedRegisters.begin();
+	list<string> savedRegisterNames;
+
+	while (it != savedRegisters.end()) {
+		if (it->second == 1)
+			savedRegisterNames.push_back(it->first);
+		it++;
+	}
+	
+	it = paramRegisters.begin();
+	while (it != paramRegisters.end()) {
+		if (it->second == 1)
+			savedRegisterNames.push_back(it->first);
+		it++;
+	}
+	
+	return savedRegisterNames;
+}

@@ -1,12 +1,39 @@
-#define MAX_DEEP_NESTING 3
+#include <stack>
+#include <map>
+#include <string>
+#include <iostream>
+#include "Value.h"
+
+using namespace std;
+
+class VarInfo {
+public:
+    int offset_base;
+    int size;
+    Type type;
+    VarInfo();
+    VarInfo(int offset_base, int size, Type type);
+
+};
 
 class Context {
 public:
-	Context();
-	Context *previous;
+    Context();
+    int getOffset(string variable_name);
+    void saveOffset(string variable_name, int offset);
+    VarInfo* getVarInfo(string variable_name);
+    void saveVarInfo(string variable_name, VarInfo *var_info);
 
-	int offset = 0;
+    int transformOffset(int offset);
+
+    Context *previous;
+
+private:
+    map<string, int> offsets;
+    map<string, VarInfo*> variables;
 };
+
+#define MAX_DEEP_NESTING 10
 
 class ContextManager {
 public:
@@ -14,11 +41,24 @@ public:
         static ContextManager instance;
         return instance;
     }
+    int getCurrentScopeSize();
+    void popScopeSize();
+    void pushScopeSize(int scopeSize);
+    int getMaximumNesting();
 
-    void registerContext(int level, Context * context);
-    void unregisterContext(int level);
+    void registerContext(int displayPosition, Context *context);
+    void unregisterContext(int displayPosition);
+
+    int getOffset(int displayStartPosition, string variable_name);
+    int getDeepLevel(int displayStartPosition, string variable_name);
+    Type getType(int displayStartPosition, string variable_name);
+
+    Context *getContext(int displayPosition);
 
 private:
 	ContextManager();
-	Context* display[MAX_DEEP_NESTING];
+	stack<int> scopeSizes;
+
+    Context* display[MAX_DEEP_NESTING];
+
 };

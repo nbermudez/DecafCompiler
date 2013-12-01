@@ -10,13 +10,8 @@ class GreatestCommonDivisor
 	
 	void main()
 	{
-		//x = a;
-		//y = b;
-		z = gcd(x, y);
-		z = gcd(x, y);
-		z = gcd(x, y);
-		z = gcd(x, y);
-		z = gcd(x, y);
+		x = aaaaa;
+		y = bbbbb1;
 		z = gcd(x, y);
 
 		print z;

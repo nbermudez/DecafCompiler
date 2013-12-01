@@ -5,7 +5,7 @@ DECAF_TREE_DEF	:= decaf_tree.tc
 DECAF_TREE	:= decaf_tree.cpp
 
 TARGET  := decaf
-SRCS    := ${DECAF_TREE} ${DECAF_LEXER} ${DECAF_GRAMMAR} Util.cpp error_handler.cpp register_manager.cpp label_manager.cpp main.cpp
+SRCS    := ${DECAF_TREE} ${DECAF_LEXER} ${DECAF_GRAMMAR} Util.cpp error_handler.cpp register_manager.cpp context_manager.cpp label_manager.cpp main.cpp
 OBJS    := ${SRCS:.cpp=.o} 
 
 CCFLAGS = -fpermissive -g

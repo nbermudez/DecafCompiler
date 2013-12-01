@@ -15,6 +15,8 @@
         return out.str();
     }
 
+    string function_end;
+    
 %}
 
 /*=====================================================================*/
@@ -83,6 +85,8 @@
 
     %nocreate int deepLevel = {0};
     %nocreate int offset = {0};
+    %nocreate bool isGlobal = {false};
+    %nocreate bool isParameter = {false};
 }
 
 %node DecoratedMethodCallExpression DecoratedExpression = {
@@ -144,6 +148,8 @@
     DecoratedStatementList  *statement_list;
     %nocreate DecoratedBlockStatement *parent = {NULL};
     %nocreate int deepLevel = {0};
+    %nocreate int scopeSize = {0};
+    %nocreate Context* context = {NULL};
 }
 
 /*=====================================================================*/
@@ -259,10 +265,10 @@ generateCode(DecoratedAndExpression) {
     out << indent(indentLevel) << "beq " << left->place << ", $zero, " << lblFalse << endl;
     out << indent(indentLevel) << "beq " << right->place << ", $zero, " << lblFalse << endl;
     out << indent(indentLevel) << "li " << reg << ", 1" << endl;
-    out << indent(indentLevel) << "j " << lblEnd;
+    out << indent(indentLevel) << "j " << lblEnd << endl;
     out << indent(indentLevel) << lblFalse << ":" << endl;
     out << indent(indentLevel) << "li " << reg << ", 0" << endl;
-    out << indent(indentLevel) << lblEnd << endl;
+    out << indent(indentLevel) << lblEnd << ": " << endl;
 
     this->place = reg;
     
@@ -289,10 +295,10 @@ generateCode(DecoratedOrExpression) {
     out << indent(indentLevel) << "bne " << left->place << ", $zero, " << lblTrue << endl;
     out << indent(indentLevel) << "bne " << right->place << ", $zero, " << lblTrue << endl;
     out << indent(indentLevel) << "li " << reg << ", 0" << endl;
-    out << indent(indentLevel) << "j " << lblEnd;
+    out << indent(indentLevel) << "j " << lblEnd << endl;
     out << indent(indentLevel) << lblTrue << ":" << endl;
     out << indent(indentLevel) << "li " << reg << ", 1" << endl;
-    out << indent(indentLevel) << lblEnd << endl;
+    out << indent(indentLevel) << lblEnd << ":" << endl;
 
     this->place = reg;
     
@@ -535,53 +541,88 @@ generateCode(DecoratedStringConstant) {
 generateCode(DecoratedLValue) {
     ostringstream out;
 
-    string reg;
-    reg = RegisterManager::getInstance().getTempRegister();
+    string reg = RegisterManager::getInstance().getTempRegister();
+    Context *context = ContextManager::getInstance().getContext(this->deepLevel);
 
-    Variable* var = currentFunction->findParameter(variable_name);
-    if (var != NULL) {
-        out << indent(indentLevel) << "move " << reg << ", " << "$a" << ((SimpleVariable*)var)->parameterId << endl;
-    } else {
+    string indentation = indent(indentLevel);
+    out << indentation << "# " << variable_name << endl;
 
-        out << indent(indentLevel) << "la " << reg << ", " << variable_name << endl;
+    if (isGlobal) {
+        
+        out << indentation << "la " << reg << ", " << variable_name << endl;
         if (array_index != NULL) {
             out << array_index->generateCode(indentLevel + 1);
             out << indent(indentLevel + 1) << "sll " << array_index->place 
-                << ", " << array_index->place << ", 2" << endl;
-            out << indent(indentLevel) << "add " << reg << ", " << reg << ", " 
+                << ", " << array_index->place << ", 2" << "# multiply by 4" << endl;
+            out << indentation << "add " << reg << ", " << reg << ", " 
                 << array_index->place << endl;
         }
-        out << indent(indentLevel) << "lw " << reg << ", 0(" << reg << ")" << endl;
         
+    } else if (isParameter) {
+        out << indentation << "addi " << reg << ", $fp, " << this->offset << endl;
+        out << indentation << "#param: " << variable_name << " offset " << this->offset << endl;
+    } else {
+        out << indentation << "la " << reg << ", display" << endl;
+        out << indentation << "addi " << reg << ", " << reg << ", " << (this->deepLevel*4) << endl;
+        out << indentation << "lw " << reg << ", 0(" << reg << ")" << endl;
+        out << indentation << "addi " << reg << ", " << reg << ", " << context->transformOffset(this->offset) << endl;
+        out << indentation << "#local: " << variable_name << " offset " << this->offset
+            << " level " << this->deepLevel << endl;
     }
+    out << indentation << "lw " << reg << ", 0(" << reg << ")" << endl;
     this->place =  reg;
 
     return out.str();
 }
 
 generateCode(DecoratedMethodCallExpression) {
-    ostringstream out;
+    ostringstream out; 
+
+    string indentation = indent(indentLevel + 1);
 
     list<DecoratedExpression*>::iterator it = arguments->begin();
     int argc = 0;
+    out << indentation << "#method call " << name << endl;
+    list<string> toSaveRegisters;
+    int offset = 0;
+    int paramsInReg = arguments->size()/* >= 4? arguments->size() - 4: 0*/;
+
+    out << indentation << "addi $sp, $sp, " << (-4*paramsInReg) << "#arguments" << endl;
+
     while (it != arguments->end()) {
         DecoratedExpression *argument = (*it);
-        if (argc < 5) {
-            //usar $a0...$a4
+        if (argc <= 4) {//usar $a0...$a3
             string param;
             param = RegisterManager::getInstance().getParamRegister();
 
             out << argument->generateCode(indentLevel + 1);
-            out << indent(indentLevel) << "move " << param << " ," << argument->place << endl;
+            out << indentation << "#saving previous value" << endl;
+            toSaveRegisters.push_front(param);
+            out << indentation << "sw " << param << ", " << offset << "($sp)" << endl;
+            offset += 4;
+            
+            out << indentation << "#end saving" << endl;
+            out << indent(indentLevel) << "move " << param << ", " << argument->place << endl;
             RegisterManager::getInstance().freeRegister(argument->place);
         } else {
             //poner en la pila
         }
         it++;
     }
-    //TODO:save registers
     out << indent(indentLevel) << "jal " << name << endl;
-    //TODO:restore registers
+
+    list<string>::iterator string_iterator = toSaveRegisters.begin();
+    int size = -offset;
+    offset = 0;
+    while (string_iterator != toSaveRegisters.end()) {        
+        out << indentation << "lw " << (*string_iterator) << ", " << offset << "($sp)" << endl;
+        offset += 4;     
+        
+        string_iterator++;
+    }
+    out << indentation << "addi $sp, $sp, " << size << endl;
+
+    out << indentation << "#end method call" << name << endl;
 
     RegisterManager::getInstance().freeParamRegisters();
     
@@ -597,6 +638,7 @@ generateCode(DecoratedAssignmentStatement) {
     out << lvalue->getLocation(indentLevel + 1);
     out << value->generateCode(indentLevel + 1);
     out << indent(indentLevel) << "sw " << value->place << ", 0(" << lvalue->place << ")" << endl;
+    out << "#termino assignment..." << endl;
 
     RegisterManager::getInstance().freeRegister(lvalue->place);
     RegisterManager::getInstance().freeRegister(value->place);
@@ -694,6 +736,8 @@ generateCode(DecoratedIfStatement) {
         out << false_part->generateCode(indentLevel + 1) << endl;
     }
 
+    RegisterManager::getInstance().freeRegister(condition->place);
+
     return out.str();
 }
 
@@ -763,14 +807,43 @@ generateCode(DecoratedForStatement) {
 }
 
 generateCode(DecoratedReturnStatement) {
-    ostringstream out;
+    ostringstream out, epilogo;
+
+    string indentation = indent(indentLevel);
+
     if (expression != NULL) {
         out << expression->generateCode(indentLevel + 1);
-        out << indent(indentLevel) << "move $v0, " << expression->place << endl;
-
-        //epilogo
+        if (expression->place != "$v0")
+            out << indent(indentLevel) << "move $v0, " << expression->place << endl;
         
     }
+
+    //out << indentation << "j " << function_end << endl;
+
+    epilogo << indentation << "#epilog " << endl;
+
+    /* Load $ra */
+    epilogo << indentation << "lw $ra, 0($fp)" << endl;
+
+    list<string> toSaveRegisters = RegisterManager::getInstance().registersToSave();
+    list<string>::iterator regToSaveIterator = toSaveRegisters.begin();
+    int offset = 0;
+
+    /* Load registers */
+    regToSaveIterator = toSaveRegisters.begin();
+    while (regToSaveIterator != toSaveRegisters.end()) {
+        epilogo << indentation << "lw " << (*regToSaveIterator) << ", " << offset << "($sp)" << endl;
+        offset += 4;
+        regToSaveIterator++;
+    }
+
+    /* Load $fp */
+    epilogo << indentation << "lw $fp, 4($fp)" << endl;
+
+    epilogo << indentation << "addi $sp, $sp, " << offset << endl;
+    epilogo << indentation << "#end of epilog" << endl;
+
+    out << epilogo.str();
     out << indent(indentLevel) << "jr $ra" << endl;
     return out.str();
 }
@@ -799,15 +872,63 @@ generateCode(DecoratedBlockStatement) {
     }
     ostringstream out;
 
+    string indentation = indent(indentLevel);
+
+    string displayAddress, displayItem;
+    displayAddress = RegisterManager::getInstance().getTempRegister();
+    displayItem = RegisterManager::getInstance().getTempRegister();
+
+    int displayOffset = (deepLevel*4);
+
+    out << indentation << "#generating scope registration logic..." << endl;
+    out << indentation << "la " << displayAddress << ", display" << endl;
+    out << indentation << "lw " << displayItem << ", " << displayOffset << "(" << displayAddress << ")" << endl;
+    out << indentation << "addi $sp, $sp, -4" << endl;
+    out << indentation << "sw " << displayItem << ", 0($sp)" << endl;
+    out << indentation << "addi $sp, $sp, " << (-scopeSize) << "   #reservar el espacio para el scope" << endl;
+    out << indentation << "sw $sp, " << displayOffset << "(" << displayAddress << ")" << endl;
+    out << indentation << "#end of scope registration" << endl;
+
+    RegisterManager::getInstance().freeRegister(displayAddress);
+    RegisterManager::getInstance().freeRegister(displayItem);
+
+    ContextManager::getInstance().registerContext(this->deepLevel, this->context);
+
     list<DecoratedStatement*>::iterator it = statement_list->begin();
-    out << indent(indentLevel) << "# scope level " << deepLevel << endl;
+    out << indentation << "# scope level " << deepLevel << endl;
 
     while (it != statement_list->end()) {
+        DecoratedMethodCallStatement *mc = dynamic_cast<DecoratedMethodCallStatement*>(*it);
+        if (mc != NULL) {
+            list<string> registersToSave = RegisterManager::getInstance().registersToSave();
+            //generar codigo para guardar los registros a0...a3 en la pila!
+            //cualquier llamada a metodo debe sacar los valores de la pila
+            //NUNCA de los parametros!!!!!
+            out << indentation << "#saving parameters because of method call" << endl;
+            out << indentation << "addi $sp, $sp, -16" << endl;
+            int i = 0;
+            while (i < 4) {
+                out << indentation << "sw $a" << i << ", " << i*4 << "($sp)" << endl;
+                i++;
+            }
+            out << indentation << "#end saving parameters because of method call" << endl;
+        }
         out << (*it)->generateCode(indentLevel + 1);
-
         it++;
     }
     out << indent(indentLevel) << "# end of scope level " << deepLevel << endl;
+
+    displayAddress = RegisterManager::getInstance().getTempRegister();
+    displayItem = RegisterManager::getInstance().getTempRegister();
+    ContextManager::getInstance().unregisterContext(this->deepLevel);
+
+    out << indentation << "#starting scope unregistration code..." << endl;
+    out << indentation << "addi $sp, $sp, " << scopeSize << endl;
+    out << indentation << "la " << displayAddress << ", display" << endl;
+    out << indentation << "lw " << displayItem << ", 0($sp)" << endl;
+    out << indentation << "addi $sp, $sp, 4" << endl;
+    out << indentation << "sw " << displayItem << ", " << displayOffset << "(" << displayAddress << ")" << endl;
+    out << indentation << "#end of scope unregistration" << endl;
 
 
     return out.str();
@@ -844,6 +965,9 @@ generateCode(DecoratedClass) {
         variable_it++;
     }
 
+    out << "#special data" << endl;
+    out << "display: .word 0:" << (MAX_DEEP_NESTING - 1) << endl;
+
     /*********************** Registering Strings **********************/
 
     map<string, string> *strings = getSymbolTableInstance()->getStrings();
@@ -865,26 +989,83 @@ generateCode(DecoratedClass) {
     map<string, Function*> *functions = getSymbolTableInstance()->getFunctions();
     map<string, Function*>::iterator function = functions->begin();
 
-    while (function != functions->end()) {
+    string indentation = indent(indentLevel);
 
-        out << indent(indentLevel) << function->first << ":" << endl;
+    while (function != functions->end()) {
+        ostringstream functionCode;
+
+        out << indentation << function->first << ":" << endl;
         currentFunction = function->second;
 
-        out << indent(indentLevel) << "#prologo ..." << endl;
-        out << indent(indentLevel) << "add $sp, $sp, " << currentFunction->activation_size << endl << endl;
-        if (function->second->body != NULL)
-            out << function->second->body->generateCode(indentLevel + 1);
+        function_end = LabelManager::getInstance().getFunctionEndLabel();
+
+        if (function->second->body != NULL) {
+            functionCode << indentation << "# function body code" << endl;
+            functionCode << function->second->body->generateCode(indentLevel + 1);
+            functionCode << indentation << "# end of function body code" << endl;
+        }
 
         if (function->first == "main") {
-            out << indent(indentLevel) << "li $v0, 10" << endl;
-            out << indent(indentLevel) << "syscall" << endl;
+            functionCode << indentation << "li $v0, 10" << endl;
+            functionCode << indentation << "syscall" << endl;
         }
+
+        list<string> toSaveRegisters;
+        int count = currentFunction->getParameterRegsNeededCount();
+        for (int i = 0; i < count; i++) {
+            ostringstream o;
+            o << "$a" << i;
+            toSaveRegisters.push_back(o.str());
+        }
+
+        ostringstream prologo, epilogo;
+
+        prologo << indentation << "#prolog for " << function->first << endl;
+
+        prologo << indentation << "addi $sp, $sp, -8" << endl;
+
+        /* Save $ra */
+        prologo << indentation << "sw $ra, 0($sp)" << endl;
+
+        /* Save $fp */
+        prologo << indentation << "sw $fp, 4($sp)" << endl;
+
+        /* Set $fp */
+        prologo << indentation << "move $fp, $sp" << endl;
+
+        int offset = 0;
+
+        prologo << indentation << "addi $sp, $sp, -" << (toSaveRegisters.size()*4) << endl;
+
+        /* Save registers */
+        list<string>::iterator regToSaveIterator = toSaveRegisters.begin();
+        while (regToSaveIterator != toSaveRegisters.end()) {
+            prologo << indentation << "sw " << (*regToSaveIterator) << ", " << offset << "($sp)" << endl;
+            offset += 4;
+            regToSaveIterator++;
+        }
+        prologo << indentation << "#end of prolog for " << function->first << endl;
+
+        /*regToSaveIterator = toSaveRegisters.begin();
+        offset = 0;
+        while (regToSaveIterator != toSaveRegisters.end()) {
+            epilogo << indentation << "lw " << (*regToSaveIterator) << ", " << offset << "($sp)" << endl;
+            offset += 4;
+            regToSaveIterator++;
+        }
+
+        epilogo << indentation << "addi $sp, $sp, " << (toSaveRegisters.size()*4) << endl;
+        epilogo << indentation << "lw $fp, 4($sp)" << endl;
+        epilogo << indentation << "lw $ra, 0($sp)" << endl;
+        epilogo << indentation << "addi $sp, $sp, 8" << endl;*/
 
         RegisterManager::getInstance().freeAllRegisters();
 
-        out << indent(indentLevel) << "#epilogo ..." << endl;
-        out << indent(indentLevel) << "add $sp, $sp, -" << currentFunction->activation_size << endl << endl;
-
+        out << prologo.str();
+        out << functionCode.str();
+        //out << function_end << ":" << endl;
+        //out << epilogo.str();
+        //out << indentation << "jr $ra" << endl;
         out << endl << endl;
 
         function++;
@@ -900,15 +1081,53 @@ getLocation(DecoratedLValue) {
     string reg;
     reg = RegisterManager::getInstance().getSavedRegister();
 
-    out << indent(indentLevel) << "la " << reg << ", " << variable_name << endl;
-    if (array_index != NULL) {
-        out << array_index->generateCode(indentLevel + 1);
-        out << indent(indentLevel + 1) << "sll " << array_index->place 
-            << ", " << array_index->place << ", 2" << "# multiply by 4" << endl;
-        out << indent(indentLevel) << "add " << reg << ", " << reg << ", " 
-            << array_index->place << endl;
+    Context *context = ContextManager::getInstance().getContext(this->deepLevel);
+
+    string indentation;
+    indentation = indent(indentLevel);
+
+    out << indentation << "#var " << variable_name << endl;
+
+    if (isGlobal) {
+        
+        out << indentation << "la " << reg << ", " << variable_name << endl;
+        if (array_index != NULL) {
+            out << array_index->generateCode(indentLevel + 1);
+            out << indent(indentLevel + 1) << "sll " << array_index->place 
+                << ", " << array_index->place << ", 2" << "# multiply by 4" << endl;
+            out << indentation << "add " << reg << ", " << reg << ", " 
+                << array_index->place << endl;
+        }
+        
+    } else if (isParameter) {
+        out << indentation << "addi " << reg << ", $fp, " << this->offset << endl;
+        out << indentation << "#param: " << variable_name << " offset " << this->offset << endl;
+    } else {
+        out << indentation << "la " << reg << ", display" << endl;
+        out << indentation << "addi " << reg << ", " << reg << ", " << (this->deepLevel*4) << endl;
+        out << indentation << "lw " << reg << ", 0(" << reg << ")" << endl;
+        out << indentation << "addi " << reg << ", " << reg << ", " << context->transformOffset(this->offset) << endl;
+        out << indentation << "#local: " << variable_name << " offset " << this->offset
+            << " level " << this->deepLevel << endl;
     }
     this->place =  reg;
 
     return out.str();
 }
+
+
+/****************************
+param n 
+param n-1 
+.
+.
+.
+param 5 
+$ra
+$fp
+
+
+
+
+
+*****************************/

@@ -8,6 +8,7 @@ LabelManager::LabelManager() {
 	out_of_while_count = -1;
 	out_of_for_count = 0;
 	continue_count = 0;
+	function_end_count = 0;
 }
 
 string LabelManager::getIfLabel() {
@@ -93,6 +94,14 @@ string LabelManager::getEndLabel() {
 	ostringstream out;
 
 	out << "end_" << end_count++;
+
+	return out.str();
+}
+
+string LabelManager::getFunctionEndLabel() {
+	ostringstream out;
+
+	out << "function_end_" << function_end_count++;
 
 	return out.str();
 }

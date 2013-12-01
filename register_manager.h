@@ -1,4 +1,5 @@
 #include <map>
+#include <list>
 #include <sstream>
 #include <string>
 #include <iostream>
@@ -23,6 +24,8 @@ public:
     string getSavedRegister();
     string getReturnRegister();
     string getParamRegister();
+
+    list<string> registersToSave();
 private:
     RegisterManager(); 
     map<string, int> tempRegisters;

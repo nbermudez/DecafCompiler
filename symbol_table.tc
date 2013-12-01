@@ -31,6 +31,30 @@ setBody(Function) {
 	this->body = body;
 }
 
+%operation %virtual int getParameterRegsNeededCount(Function *this);
+
+getParameterRegsNeededCount(Function) {
+	return this->parameters.size()>4?4:this->parameters.size();
+}
+
+%operation %virtual bool mustReturnSomething(Function *this);
+
+mustReturnSomething(Function) {
+	return type == Int || type == Boolean;
+}
+
+%operation %virtual int offsetFromFp([Function *this], string parameterName);
+
+offsetFromFp(Function) {
+	Variable *var = findParameter(parameterName);
+	if (var == NULL)
+		return -1;
+	int offset = parameters.size()>4?4:parameters.size();
+	offset = -(offset - ((SimpleVariable*)var)->parameterId)*4;
+
+	return offset;
+}
+
 %operation %virtual Variable *getParameter([Function *this], int parameterId);
 
 getParameter(Function) {

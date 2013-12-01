@@ -39,6 +39,8 @@ public:
     string getCurrentForLabel();
     string getCurrentBreakPoint();
 
+    string getFunctionEndLabel();
+
 private:
     LabelManager(); 
     int if_count;
@@ -50,6 +52,7 @@ private:
     int out_of_for_count;
     int for_count;
     int false_count, true_count, end_count;
+    int function_end_count;
 
     stack<string> continuePoints;
     stack<string> whileLabels;

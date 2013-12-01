@@ -1,0 +1,37 @@
+class ScopeSizes {
+	int t;
+
+	int func(int param) {
+		{
+			boolean a;
+			int x;
+			/*x = 1;
+			a = false;*/
+		}
+		/*t = 2;
+		param = 3;*/
+	}
+
+	void main() {
+		int potato;
+		int xx;
+		{
+			int x;
+			int y;
+			boolean z;			
+			{
+				x= 1;
+				print x, "\n";
+			}
+			print x, "\n";
+		}
+		/*potato = 2;
+		xx = 3;
+		t = 1;
+		print t, "\n";
+		print xx, "\n";
+		print "after prints...";*/
+	}
+
+	
+}

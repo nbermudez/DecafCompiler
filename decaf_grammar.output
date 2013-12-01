@@ -1,0 +1,2712 @@
+Gramática
+
+    0 $accept: program $end
+
+    1 program: class_def
+
+    2 class_def: "'class'" class_name '{' field_decl_list optional_method_decl_list '}'
+
+    3 optional_method_decl_list: method_decl_list
+    4                          | /* vacío */
+
+    5 field_decl_list: field_decl_list field_decl
+    6                | /* vacío */
+
+    7 method_decl_list: method_decl_list method_decl
+    8                 | method_decl
+
+    9 class_name: "'identificador'"
+
+   10 field_decl: type var_list ';'
+
+   11 var_list: var_list ',' var
+   12         | var
+
+   13 var: "'identificador'" optional_initialization
+   14    | "'identificador'" '[' "constante entera" ']'
+
+   15 optional_initialization: '=' constant
+   16                        | /* vacío */
+
+   17 method_decl: type "'identificador'" '(' opt_parameter_decl_list ')' block
+
+   18 opt_parameter_decl_list: parameter_decl_list
+   19                        | /* vacío */
+
+   20 parameter_decl_list: parameter_decl_list ',' parameter_decl
+   21                    | parameter_decl
+
+   22 parameter_decl: type "'identificador'"
+
+   23 block: '{' opt_statement_list '}'
+
+   24 opt_statement_list: statement_list
+   25                   | /* vacío */
+
+   26 type: "'int'"
+   27     | "'boolean'"
+   28     | "'void'"
+
+   29 statement_list: statement_list statement
+   30               | statement
+
+   31 statement: assign ';'
+   32          | method_call ';'
+   33          | if_statement
+   34          | while_statement
+   35          | for_statement
+   36          | return_statement ';'
+   37          | break_statement ';'
+   38          | continue_statement ';'
+   39          | block
+   40          | local_variable_decl ';'
+
+   41 assign: lvalue '=' expr
+
+   42 method_call: method_name '(' opt_method_call_argument_list ')'
+   43            | "'print'" print_argument_list
+   44            | "'read'" read_argument_list
+
+   45 method_name: "'identificador'"
+
+   46 opt_method_call_argument_list: method_call_argument_list
+   47                              | /* vacío */
+
+   48 method_call_argument_list: method_call_argument_list ',' expr
+   49                          | expr
+
+   50 print_argument_list: print_argument_list ',' print_argument
+   51                    | print_argument
+
+   52 print_argument: "constante de cadena"
+   53               | expr
+
+   54 read_argument_list: read_argument_list ',' lvalue
+   55                   | lvalue
+
+   56 lvalue: "'identificador'" opt_array_dimension
+
+   57 opt_array_dimension: '[' expr ']'
+   58                    | /* vacío */
+
+   59 if_statement: "'if'" '(' expr ')' block opt_else
+
+   60 opt_else: "'else'" block
+   61         | /* vacío */
+
+   62 while_statement: "'while'" '(' expr ')' block
+
+   63 for_statement: "'for'" '(' for_assignment_list ';' expr ';' for_assignment_list ')' block
+
+   64 for_assignment_list: for_assignment_list ',' assign
+   65                    | assign
+
+   66 return_statement: "'return'" opt_expr
+
+   67 break_statement: "'break'"
+
+   68 continue_statement: "'continue'"
+
+   69 opt_expr: expr
+   70         | /* vacío */
+
+   71 expr: expr "operador booleano 'or'" bool_term
+   72     | bool_term
+
+   73 bool_term: bool_term "operador booleano 'and'" relational_expr
+   74          | relational_expr
+
+   75 relational_expr: relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | bit_shift_expr
+
+   77 bit_shift_expr: bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | arith_expr
+
+   79 arith_expr: arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | arith_term
+
+   81 arith_term: arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | factor
+
+   83 factor: '!' factor
+   84       | "operador aritmetico '+' o '-'" factor
+   85       | lvalue
+   86       | method_name '(' opt_method_call_argument_list ')'
+   87       | constant
+   88       | '(' expr ')'
+
+   89 constant: "constante entera"
+   90         | "constante caracter"
+   91         | "constante real"
+   92         | bool_constant
+
+   93 bool_constant: "'true'"
+   94              | "'false'"
+
+   95 local_variable_decl: type local_variable_list
+
+   96 local_variable_list: local_variable_list ',' local_variable
+   97                    | local_variable
+
+   98 local_variable: "'identificador'"
+
+
+Terminales con las reglas donde aparecen
+
+$end (0) 0
+'!' (33) 83
+'(' (40) 17 42 59 62 63 86 88
+')' (41) 17 42 59 62 63 86 88
+',' (44) 11 20 48 50 54 64 96
+';' (59) 10 31 32 36 37 38 40 63
+'=' (61) 15 41
+'[' (91) 14 57
+']' (93) 14 57
+'{' (123) 2 23
+'}' (125) 2 23
+error (256)
+"'identificador'" (258) 9 13 14 17 22 45 56 98
+"'class'" (259) 2
+"'break'" (260) 67
+"'continue'" (261) 68
+"'while'" (262) 62
+"'for'" (263) 63
+"'if'" (264) 59
+"'else'" (265) 60
+"'return'" (266) 66
+"'read'" (267) 44
+"'print'" (268) 43
+"'true'" (269) 93
+"'false'" (270) 94
+"'int'" (271) 26
+"'void'" (272) 28
+"'boolean'" (273) 27
+"operador booleano 'or'" (274) 71
+"operador booleano 'and'" (275) 73
+"operador de corrimiento de bits" (276) 77
+"operador relacional '>', '<', '>=', '<=', '==' o '!='" (277) 75
+"operador aritmetico '+' o '-'" (278) 79 84
+"operador aritmetico '*', '/', '%' " (279) 81
+"constante caracter" (280) 90
+"constante entera" (281) 14 89
+"constante real" (282) 91
+"constante de cadena" (283) 52
+
+
+No terminales con las reglas donde aparecen
+
+$accept (39)
+    en la izquierda: 0
+program (40)
+    en la izquierda: 1, en la derecha: 0
+class_def (41)
+    en la izquierda: 2, en la derecha: 1
+optional_method_decl_list (42)
+    en la izquierda: 3 4, en la derecha: 2
+field_decl_list (43)
+    en la izquierda: 5 6, en la derecha: 2 5
+method_decl_list (44)
+    en la izquierda: 7 8, en la derecha: 3 7
+class_name (45)
+    en la izquierda: 9, en la derecha: 2
+field_decl (46)
+    en la izquierda: 10, en la derecha: 5
+var_list (47)
+    en la izquierda: 11 12, en la derecha: 10 11
+var (48)
+    en la izquierda: 13 14, en la derecha: 11 12
+optional_initialization (49)
+    en la izquierda: 15 16, en la derecha: 13
+method_decl (50)
+    en la izquierda: 17, en la derecha: 7 8
+opt_parameter_decl_list (51)
+    en la izquierda: 18 19, en la derecha: 17
+parameter_decl_list (52)
+    en la izquierda: 20 21, en la derecha: 18 20
+parameter_decl (53)
+    en la izquierda: 22, en la derecha: 20 21
+block (54)
+    en la izquierda: 23, en la derecha: 17 39 59 60 62 63
+opt_statement_list (55)
+    en la izquierda: 24 25, en la derecha: 23
+type (56)
+    en la izquierda: 26 27 28, en la derecha: 10 17 22 95
+statement_list (57)
+    en la izquierda: 29 30, en la derecha: 24 29
+statement (58)
+    en la izquierda: 31 32 33 34 35 36 37 38 39 40, en la derecha:
+    29 30
+assign (59)
+    en la izquierda: 41, en la derecha: 31 64 65
+method_call (60)
+    en la izquierda: 42 43 44, en la derecha: 32
+method_name (61)
+    en la izquierda: 45, en la derecha: 42 86
+opt_method_call_argument_list (62)
+    en la izquierda: 46 47, en la derecha: 42 86
+method_call_argument_list (63)
+    en la izquierda: 48 49, en la derecha: 46 48
+print_argument_list (64)
+    en la izquierda: 50 51, en la derecha: 43 50
+print_argument (65)
+    en la izquierda: 52 53, en la derecha: 50 51
+read_argument_list (66)
+    en la izquierda: 54 55, en la derecha: 44 54
+lvalue (67)
+    en la izquierda: 56, en la derecha: 41 54 55 85
+opt_array_dimension (68)
+    en la izquierda: 57 58, en la derecha: 56
+if_statement (69)
+    en la izquierda: 59, en la derecha: 33
+opt_else (70)
+    en la izquierda: 60 61, en la derecha: 59
+while_statement (71)
+    en la izquierda: 62, en la derecha: 34
+for_statement (72)
+    en la izquierda: 63, en la derecha: 35
+for_assignment_list (73)
+    en la izquierda: 64 65, en la derecha: 63 64
+return_statement (74)
+    en la izquierda: 66, en la derecha: 36
+break_statement (75)
+    en la izquierda: 67, en la derecha: 37
+continue_statement (76)
+    en la izquierda: 68, en la derecha: 38
+opt_expr (77)
+    en la izquierda: 69 70, en la derecha: 66
+expr (78)
+    en la izquierda: 71 72, en la derecha: 41 48 49 53 57 59 62 63
+    69 71 88
+bool_term (79)
+    en la izquierda: 73 74, en la derecha: 71 72 73
+relational_expr (80)
+    en la izquierda: 75 76, en la derecha: 73 74 75
+bit_shift_expr (81)
+    en la izquierda: 77 78, en la derecha: 75 76 77
+arith_expr (82)
+    en la izquierda: 79 80, en la derecha: 77 78 79
+arith_term (83)
+    en la izquierda: 81 82, en la derecha: 79 80 81
+factor (84)
+    en la izquierda: 83 84 85 86 87 88, en la derecha: 81 82 83 84
+constant (85)
+    en la izquierda: 89 90 91 92, en la derecha: 15 87
+bool_constant (86)
+    en la izquierda: 93 94, en la derecha: 92
+local_variable_decl (87)
+    en la izquierda: 95, en la derecha: 40
+local_variable_list (88)
+    en la izquierda: 96 97, en la derecha: 95 96
+local_variable (89)
+    en la izquierda: 98, en la derecha: 96 97
+
+
+estado 0
+
+    0 $accept: . program $end
+    1 program: . class_def
+    2 class_def: . "'class'" class_name '{' field_decl_list optional_method_decl_list '}'
+
+    "'class'"  desplazar e ir al estado 1
+
+    program    ir al estado 2
+    class_def  ir al estado 3
+
+
+estado 1
+
+    2 class_def: "'class'" . class_name '{' field_decl_list optional_method_decl_list '}'
+    9 class_name: . "'identificador'"
+
+    "'identificador'"  desplazar e ir al estado 4
+
+    class_name  ir al estado 5
+
+
+estado 2
+
+    0 $accept: program . $end
+
+    $end  desplazar e ir al estado 6
+
+
+estado 3
+
+    1 program: class_def .
+
+    $default  reduce usando la regla 1 (program)
+
+
+estado 4
+
+    9 class_name: "'identificador'" .
+
+    $default  reduce usando la regla 9 (class_name)
+
+
+estado 5
+
+    2 class_def: "'class'" class_name . '{' field_decl_list optional_method_decl_list '}'
+
+    '{'  desplazar e ir al estado 7
+
+
+estado 6
+
+    0 $accept: program $end .
+
+    $default  aceptar
+
+
+estado 7
+
+    2 class_def: "'class'" class_name '{' . field_decl_list optional_method_decl_list '}'
+    5 field_decl_list: . field_decl_list field_decl
+    6                | .
+
+    $default  reduce usando la regla 6 (field_decl_list)
+
+    field_decl_list  ir al estado 8
+
+
+estado 8
+
+    2 class_def: "'class'" class_name '{' field_decl_list . optional_method_decl_list '}'
+    3 optional_method_decl_list: . method_decl_list
+    4                          | .  ['}']
+    5 field_decl_list: field_decl_list . field_decl
+    7 method_decl_list: . method_decl_list method_decl
+    8                 | . method_decl
+   10 field_decl: . type var_list ';'
+   17 method_decl: . type "'identificador'" '(' opt_parameter_decl_list ')' block
+   26 type: . "'int'"
+   27     | . "'boolean'"
+   28     | . "'void'"
+
+    "'int'"      desplazar e ir al estado 9
+    "'void'"     desplazar e ir al estado 10
+    "'boolean'"  desplazar e ir al estado 11
+
+    $default  reduce usando la regla 4 (optional_method_decl_list)
+
+    optional_method_decl_list  ir al estado 12
+    method_decl_list           ir al estado 13
+    field_decl                 ir al estado 14
+    method_decl                ir al estado 15
+    type                       ir al estado 16
+
+
+estado 9
+
+   26 type: "'int'" .
+
+    $default  reduce usando la regla 26 (type)
+
+
+estado 10
+
+   28 type: "'void'" .
+
+    $default  reduce usando la regla 28 (type)
+
+
+estado 11
+
+   27 type: "'boolean'" .
+
+    $default  reduce usando la regla 27 (type)
+
+
+estado 12
+
+    2 class_def: "'class'" class_name '{' field_decl_list optional_method_decl_list . '}'
+
+    '}'  desplazar e ir al estado 17
+
+
+estado 13
+
+    3 optional_method_decl_list: method_decl_list .  ['}']
+    7 method_decl_list: method_decl_list . method_decl
+   17 method_decl: . type "'identificador'" '(' opt_parameter_decl_list ')' block
+   26 type: . "'int'"
+   27     | . "'boolean'"
+   28     | . "'void'"
+
+    "'int'"      desplazar e ir al estado 9
+    "'void'"     desplazar e ir al estado 10
+    "'boolean'"  desplazar e ir al estado 11
+
+    $default  reduce usando la regla 3 (optional_method_decl_list)
+
+    method_decl  ir al estado 18
+    type         ir al estado 19
+
+
+estado 14
+
+    5 field_decl_list: field_decl_list field_decl .
+
+    $default  reduce usando la regla 5 (field_decl_list)
+
+
+estado 15
+
+    8 method_decl_list: method_decl .
+
+    $default  reduce usando la regla 8 (method_decl_list)
+
+
+estado 16
+
+   10 field_decl: type . var_list ';'
+   11 var_list: . var_list ',' var
+   12         | . var
+   13 var: . "'identificador'" optional_initialization
+   14    | . "'identificador'" '[' "constante entera" ']'
+   17 method_decl: type . "'identificador'" '(' opt_parameter_decl_list ')' block
+
+    "'identificador'"  desplazar e ir al estado 20
+
+    var_list  ir al estado 21
+    var       ir al estado 22
+
+
+estado 17
+
+    2 class_def: "'class'" class_name '{' field_decl_list optional_method_decl_list '}' .
+
+    $default  reduce usando la regla 2 (class_def)
+
+
+estado 18
+
+    7 method_decl_list: method_decl_list method_decl .
+
+    $default  reduce usando la regla 7 (method_decl_list)
+
+
+estado 19
+
+   17 method_decl: type . "'identificador'" '(' opt_parameter_decl_list ')' block
+
+    "'identificador'"  desplazar e ir al estado 23
+
+
+estado 20
+
+   13 var: "'identificador'" . optional_initialization
+   14    | "'identificador'" . '[' "constante entera" ']'
+   15 optional_initialization: . '=' constant
+   16                        | .  [';', ',']
+   17 method_decl: type "'identificador'" . '(' opt_parameter_decl_list ')' block
+
+    '('  desplazar e ir al estado 24
+    '['  desplazar e ir al estado 25
+    '='  desplazar e ir al estado 26
+
+    $default  reduce usando la regla 16 (optional_initialization)
+
+    optional_initialization  ir al estado 27
+
+
+estado 21
+
+   10 field_decl: type var_list . ';'
+   11 var_list: var_list . ',' var
+
+    ';'  desplazar e ir al estado 28
+    ','  desplazar e ir al estado 29
+
+
+estado 22
+
+   12 var_list: var .
+
+    $default  reduce usando la regla 12 (var_list)
+
+
+estado 23
+
+   17 method_decl: type "'identificador'" . '(' opt_parameter_decl_list ')' block
+
+    '('  desplazar e ir al estado 24
+
+
+estado 24
+
+   17 method_decl: type "'identificador'" '(' . opt_parameter_decl_list ')' block
+   18 opt_parameter_decl_list: . parameter_decl_list
+   19                        | .  [')']
+   20 parameter_decl_list: . parameter_decl_list ',' parameter_decl
+   21                    | . parameter_decl
+   22 parameter_decl: . type "'identificador'"
+   26 type: . "'int'"
+   27     | . "'boolean'"
+   28     | . "'void'"
+
+    "'int'"      desplazar e ir al estado 9
+    "'void'"     desplazar e ir al estado 10
+    "'boolean'"  desplazar e ir al estado 11
+
+    $default  reduce usando la regla 19 (opt_parameter_decl_list)
+
+    opt_parameter_decl_list  ir al estado 30
+    parameter_decl_list      ir al estado 31
+    parameter_decl           ir al estado 32
+    type                     ir al estado 33
+
+
+estado 25
+
+   14 var: "'identificador'" '[' . "constante entera" ']'
+
+    "constante entera"  desplazar e ir al estado 34
+
+
+estado 26
+
+   15 optional_initialization: '=' . constant
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    "'true'"              desplazar e ir al estado 35
+    "'false'"             desplazar e ir al estado 36
+    "constante caracter"  desplazar e ir al estado 37
+    "constante entera"    desplazar e ir al estado 38
+    "constante real"      desplazar e ir al estado 39
+
+    constant       ir al estado 40
+    bool_constant  ir al estado 41
+
+
+estado 27
+
+   13 var: "'identificador'" optional_initialization .
+
+    $default  reduce usando la regla 13 (var)
+
+
+estado 28
+
+   10 field_decl: type var_list ';' .
+
+    $default  reduce usando la regla 10 (field_decl)
+
+
+estado 29
+
+   11 var_list: var_list ',' . var
+   13 var: . "'identificador'" optional_initialization
+   14    | . "'identificador'" '[' "constante entera" ']'
+
+    "'identificador'"  desplazar e ir al estado 42
+
+    var  ir al estado 43
+
+
+estado 30
+
+   17 method_decl: type "'identificador'" '(' opt_parameter_decl_list . ')' block
+
+    ')'  desplazar e ir al estado 44
+
+
+estado 31
+
+   18 opt_parameter_decl_list: parameter_decl_list .  [')']
+   20 parameter_decl_list: parameter_decl_list . ',' parameter_decl
+
+    ','  desplazar e ir al estado 45
+
+    $default  reduce usando la regla 18 (opt_parameter_decl_list)
+
+
+estado 32
+
+   21 parameter_decl_list: parameter_decl .
+
+    $default  reduce usando la regla 21 (parameter_decl_list)
+
+
+estado 33
+
+   22 parameter_decl: type . "'identificador'"
+
+    "'identificador'"  desplazar e ir al estado 46
+
+
+estado 34
+
+   14 var: "'identificador'" '[' "constante entera" . ']'
+
+    ']'  desplazar e ir al estado 47
+
+
+estado 35
+
+   93 bool_constant: "'true'" .
+
+    $default  reduce usando la regla 93 (bool_constant)
+
+
+estado 36
+
+   94 bool_constant: "'false'" .
+
+    $default  reduce usando la regla 94 (bool_constant)
+
+
+estado 37
+
+   90 constant: "constante caracter" .
+
+    $default  reduce usando la regla 90 (constant)
+
+
+estado 38
+
+   89 constant: "constante entera" .
+
+    $default  reduce usando la regla 89 (constant)
+
+
+estado 39
+
+   91 constant: "constante real" .
+
+    $default  reduce usando la regla 91 (constant)
+
+
+estado 40
+
+   15 optional_initialization: '=' constant .
+
+    $default  reduce usando la regla 15 (optional_initialization)
+
+
+estado 41
+
+   92 constant: bool_constant .
+
+    $default  reduce usando la regla 92 (constant)
+
+
+estado 42
+
+   13 var: "'identificador'" . optional_initialization
+   14    | "'identificador'" . '[' "constante entera" ']'
+   15 optional_initialization: . '=' constant
+   16                        | .  [';', ',']
+
+    '['  desplazar e ir al estado 25
+    '='  desplazar e ir al estado 26
+
+    $default  reduce usando la regla 16 (optional_initialization)
+
+    optional_initialization  ir al estado 27
+
+
+estado 43
+
+   11 var_list: var_list ',' var .
+
+    $default  reduce usando la regla 11 (var_list)
+
+
+estado 44
+
+   17 method_decl: type "'identificador'" '(' opt_parameter_decl_list ')' . block
+   23 block: . '{' opt_statement_list '}'
+
+    '{'  desplazar e ir al estado 48
+
+    block  ir al estado 49
+
+
+estado 45
+
+   20 parameter_decl_list: parameter_decl_list ',' . parameter_decl
+   22 parameter_decl: . type "'identificador'"
+   26 type: . "'int'"
+   27     | . "'boolean'"
+   28     | . "'void'"
+
+    "'int'"      desplazar e ir al estado 9
+    "'void'"     desplazar e ir al estado 10
+    "'boolean'"  desplazar e ir al estado 11
+
+    parameter_decl  ir al estado 50
+    type            ir al estado 33
+
+
+estado 46
+
+   22 parameter_decl: type "'identificador'" .
+
+    $default  reduce usando la regla 22 (parameter_decl)
+
+
+estado 47
+
+   14 var: "'identificador'" '[' "constante entera" ']' .
+
+    $default  reduce usando la regla 14 (var)
+
+
+estado 48
+
+   23 block: . '{' opt_statement_list '}'
+   23      | '{' . opt_statement_list '}'
+   24 opt_statement_list: . statement_list
+   25                   | .  ['}']
+   26 type: . "'int'"
+   27     | . "'boolean'"
+   28     | . "'void'"
+   29 statement_list: . statement_list statement
+   30               | . statement
+   31 statement: . assign ';'
+   32          | . method_call ';'
+   33          | . if_statement
+   34          | . while_statement
+   35          | . for_statement
+   36          | . return_statement ';'
+   37          | . break_statement ';'
+   38          | . continue_statement ';'
+   39          | . block
+   40          | . local_variable_decl ';'
+   41 assign: . lvalue '=' expr
+   42 method_call: . method_name '(' opt_method_call_argument_list ')'
+   43            | . "'print'" print_argument_list
+   44            | . "'read'" read_argument_list
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   59 if_statement: . "'if'" '(' expr ')' block opt_else
+   62 while_statement: . "'while'" '(' expr ')' block
+   63 for_statement: . "'for'" '(' for_assignment_list ';' expr ';' for_assignment_list ')' block
+   66 return_statement: . "'return'" opt_expr
+   67 break_statement: . "'break'"
+   68 continue_statement: . "'continue'"
+   95 local_variable_decl: . type local_variable_list
+
+    "'identificador'"  desplazar e ir al estado 51
+    "'break'"          desplazar e ir al estado 52
+    "'continue'"       desplazar e ir al estado 53
+    "'while'"          desplazar e ir al estado 54
+    "'for'"            desplazar e ir al estado 55
+    "'if'"             desplazar e ir al estado 56
+    "'return'"         desplazar e ir al estado 57
+    "'read'"           desplazar e ir al estado 58
+    "'print'"          desplazar e ir al estado 59
+    "'int'"            desplazar e ir al estado 9
+    "'void'"           desplazar e ir al estado 10
+    "'boolean'"        desplazar e ir al estado 11
+    '{'                desplazar e ir al estado 48
+
+    $default  reduce usando la regla 25 (opt_statement_list)
+
+    block                ir al estado 60
+    opt_statement_list   ir al estado 61
+    type                 ir al estado 62
+    statement_list       ir al estado 63
+    statement            ir al estado 64
+    assign               ir al estado 65
+    method_call          ir al estado 66
+    method_name          ir al estado 67
+    lvalue               ir al estado 68
+    if_statement         ir al estado 69
+    while_statement      ir al estado 70
+    for_statement        ir al estado 71
+    return_statement     ir al estado 72
+    break_statement      ir al estado 73
+    continue_statement   ir al estado 74
+    local_variable_decl  ir al estado 75
+
+
+estado 49
+
+   17 method_decl: type "'identificador'" '(' opt_parameter_decl_list ')' block .
+
+    $default  reduce usando la regla 17 (method_decl)
+
+
+estado 50
+
+   20 parameter_decl_list: parameter_decl_list ',' parameter_decl .
+
+    $default  reduce usando la regla 20 (parameter_decl_list)
+
+
+estado 51
+
+   45 method_name: "'identificador'" .  ['(']
+   56 lvalue: "'identificador'" . opt_array_dimension
+   57 opt_array_dimension: . '[' expr ']'
+   58                    | .  [';', ',', "operador booleano 'or'", "operador booleano 'and'", "operador de corrimiento de bits", "operador relacional '>', '<', '>=', '<=', '==' o '!='", "operador aritmetico '+' o '-'", "operador aritmetico '*', '/', '%' ", ']', '=', ')']
+
+    '['  desplazar e ir al estado 76
+
+    '('       reduce usando la regla 45 (method_name)
+    $default  reduce usando la regla 58 (opt_array_dimension)
+
+    opt_array_dimension  ir al estado 77
+
+
+estado 52
+
+   67 break_statement: "'break'" .
+
+    $default  reduce usando la regla 67 (break_statement)
+
+
+estado 53
+
+   68 continue_statement: "'continue'" .
+
+    $default  reduce usando la regla 68 (continue_statement)
+
+
+estado 54
+
+   62 while_statement: "'while'" . '(' expr ')' block
+
+    '('  desplazar e ir al estado 78
+
+
+estado 55
+
+   63 for_statement: "'for'" . '(' for_assignment_list ';' expr ';' for_assignment_list ')' block
+
+    '('  desplazar e ir al estado 79
+
+
+estado 56
+
+   59 if_statement: "'if'" . '(' expr ')' block opt_else
+
+    '('  desplazar e ir al estado 80
+
+
+estado 57
+
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   66 return_statement: "'return'" . opt_expr
+   69 opt_expr: . expr
+   70         | .  [';']
+   71 expr: . expr "operador booleano 'or'" bool_term
+   72     | . bool_term
+   73 bool_term: . bool_term "operador booleano 'and'" relational_expr
+   74          | . relational_expr
+   75 relational_expr: . relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    $default  reduce usando la regla 70 (opt_expr)
+
+    method_name      ir al estado 84
+    lvalue           ir al estado 85
+    opt_expr         ir al estado 86
+    expr             ir al estado 87
+    bool_term        ir al estado 88
+    relational_expr  ir al estado 89
+    bit_shift_expr   ir al estado 90
+    arith_expr       ir al estado 91
+    arith_term       ir al estado 92
+    factor           ir al estado 93
+    constant         ir al estado 94
+    bool_constant    ir al estado 41
+
+
+estado 58
+
+   44 method_call: "'read'" . read_argument_list
+   54 read_argument_list: . read_argument_list ',' lvalue
+   55                   | . lvalue
+   56 lvalue: . "'identificador'" opt_array_dimension
+
+    "'identificador'"  desplazar e ir al estado 95
+
+    read_argument_list  ir al estado 96
+    lvalue              ir al estado 97
+
+
+estado 59
+
+   43 method_call: "'print'" . print_argument_list
+   45 method_name: . "'identificador'"
+   50 print_argument_list: . print_argument_list ',' print_argument
+   51                    | . print_argument
+   52 print_argument: . "constante de cadena"
+   53               | . expr
+   56 lvalue: . "'identificador'" opt_array_dimension
+   71 expr: . expr "operador booleano 'or'" bool_term
+   72     | . bool_term
+   73 bool_term: . bool_term "operador booleano 'and'" relational_expr
+   74          | . relational_expr
+   75 relational_expr: . relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    "constante de cadena"            desplazar e ir al estado 98
+    '!'                              desplazar e ir al estado 83
+
+    method_name          ir al estado 84
+    print_argument_list  ir al estado 99
+    print_argument       ir al estado 100
+    lvalue               ir al estado 85
+    expr                 ir al estado 101
+    bool_term            ir al estado 88
+    relational_expr      ir al estado 89
+    bit_shift_expr       ir al estado 90
+    arith_expr           ir al estado 91
+    arith_term           ir al estado 92
+    factor               ir al estado 93
+    constant             ir al estado 94
+    bool_constant        ir al estado 41
+
+
+estado 60
+
+   39 statement: block .
+
+    $default  reduce usando la regla 39 (statement)
+
+
+estado 61
+
+   23 block: '{' opt_statement_list . '}'
+
+    '}'  desplazar e ir al estado 102
+
+
+estado 62
+
+   95 local_variable_decl: type . local_variable_list
+   96 local_variable_list: . local_variable_list ',' local_variable
+   97                    | . local_variable
+   98 local_variable: . "'identificador'"
+
+    "'identificador'"  desplazar e ir al estado 103
+
+    local_variable_list  ir al estado 104
+    local_variable       ir al estado 105
+
+
+estado 63
+
+   23 block: . '{' opt_statement_list '}'
+   24 opt_statement_list: statement_list .  ['}']
+   26 type: . "'int'"
+   27     | . "'boolean'"
+   28     | . "'void'"
+   29 statement_list: statement_list . statement
+   31 statement: . assign ';'
+   32          | . method_call ';'
+   33          | . if_statement
+   34          | . while_statement
+   35          | . for_statement
+   36          | . return_statement ';'
+   37          | . break_statement ';'
+   38          | . continue_statement ';'
+   39          | . block
+   40          | . local_variable_decl ';'
+   41 assign: . lvalue '=' expr
+   42 method_call: . method_name '(' opt_method_call_argument_list ')'
+   43            | . "'print'" print_argument_list
+   44            | . "'read'" read_argument_list
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   59 if_statement: . "'if'" '(' expr ')' block opt_else
+   62 while_statement: . "'while'" '(' expr ')' block
+   63 for_statement: . "'for'" '(' for_assignment_list ';' expr ';' for_assignment_list ')' block
+   66 return_statement: . "'return'" opt_expr
+   67 break_statement: . "'break'"
+   68 continue_statement: . "'continue'"
+   95 local_variable_decl: . type local_variable_list
+
+    "'identificador'"  desplazar e ir al estado 51
+    "'break'"          desplazar e ir al estado 52
+    "'continue'"       desplazar e ir al estado 53
+    "'while'"          desplazar e ir al estado 54
+    "'for'"            desplazar e ir al estado 55
+    "'if'"             desplazar e ir al estado 56
+    "'return'"         desplazar e ir al estado 57
+    "'read'"           desplazar e ir al estado 58
+    "'print'"          desplazar e ir al estado 59
+    "'int'"            desplazar e ir al estado 9
+    "'void'"           desplazar e ir al estado 10
+    "'boolean'"        desplazar e ir al estado 11
+    '{'                desplazar e ir al estado 48
+
+    $default  reduce usando la regla 24 (opt_statement_list)
+
+    block                ir al estado 60
+    type                 ir al estado 62
+    statement            ir al estado 106
+    assign               ir al estado 65
+    method_call          ir al estado 66
+    method_name          ir al estado 67
+    lvalue               ir al estado 68
+    if_statement         ir al estado 69
+    while_statement      ir al estado 70
+    for_statement        ir al estado 71
+    return_statement     ir al estado 72
+    break_statement      ir al estado 73
+    continue_statement   ir al estado 74
+    local_variable_decl  ir al estado 75
+
+
+estado 64
+
+   30 statement_list: statement .
+
+    $default  reduce usando la regla 30 (statement_list)
+
+
+estado 65
+
+   31 statement: assign . ';'
+
+    ';'  desplazar e ir al estado 107
+
+
+estado 66
+
+   32 statement: method_call . ';'
+
+    ';'  desplazar e ir al estado 108
+
+
+estado 67
+
+   42 method_call: method_name . '(' opt_method_call_argument_list ')'
+
+    '('  desplazar e ir al estado 109
+
+
+estado 68
+
+   41 assign: lvalue . '=' expr
+
+    '='  desplazar e ir al estado 110
+
+
+estado 69
+
+   33 statement: if_statement .
+
+    $default  reduce usando la regla 33 (statement)
+
+
+estado 70
+
+   34 statement: while_statement .
+
+    $default  reduce usando la regla 34 (statement)
+
+
+estado 71
+
+   35 statement: for_statement .
+
+    $default  reduce usando la regla 35 (statement)
+
+
+estado 72
+
+   36 statement: return_statement . ';'
+
+    ';'  desplazar e ir al estado 111
+
+
+estado 73
+
+   37 statement: break_statement . ';'
+
+    ';'  desplazar e ir al estado 112
+
+
+estado 74
+
+   38 statement: continue_statement . ';'
+
+    ';'  desplazar e ir al estado 113
+
+
+estado 75
+
+   40 statement: local_variable_decl . ';'
+
+    ';'  desplazar e ir al estado 114
+
+
+estado 76
+
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   57 opt_array_dimension: '[' . expr ']'
+   71 expr: . expr "operador booleano 'or'" bool_term
+   72     | . bool_term
+   73 bool_term: . bool_term "operador booleano 'and'" relational_expr
+   74          | . relational_expr
+   75 relational_expr: . relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name      ir al estado 84
+    lvalue           ir al estado 85
+    expr             ir al estado 115
+    bool_term        ir al estado 88
+    relational_expr  ir al estado 89
+    bit_shift_expr   ir al estado 90
+    arith_expr       ir al estado 91
+    arith_term       ir al estado 92
+    factor           ir al estado 93
+    constant         ir al estado 94
+    bool_constant    ir al estado 41
+
+
+estado 77
+
+   56 lvalue: "'identificador'" opt_array_dimension .
+
+    $default  reduce usando la regla 56 (lvalue)
+
+
+estado 78
+
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   62 while_statement: "'while'" '(' . expr ')' block
+   71 expr: . expr "operador booleano 'or'" bool_term
+   72     | . bool_term
+   73 bool_term: . bool_term "operador booleano 'and'" relational_expr
+   74          | . relational_expr
+   75 relational_expr: . relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name      ir al estado 84
+    lvalue           ir al estado 85
+    expr             ir al estado 116
+    bool_term        ir al estado 88
+    relational_expr  ir al estado 89
+    bit_shift_expr   ir al estado 90
+    arith_expr       ir al estado 91
+    arith_term       ir al estado 92
+    factor           ir al estado 93
+    constant         ir al estado 94
+    bool_constant    ir al estado 41
+
+
+estado 79
+
+   41 assign: . lvalue '=' expr
+   56 lvalue: . "'identificador'" opt_array_dimension
+   63 for_statement: "'for'" '(' . for_assignment_list ';' expr ';' for_assignment_list ')' block
+   64 for_assignment_list: . for_assignment_list ',' assign
+   65                    | . assign
+
+    "'identificador'"  desplazar e ir al estado 95
+
+    assign               ir al estado 117
+    lvalue               ir al estado 68
+    for_assignment_list  ir al estado 118
+
+
+estado 80
+
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   59 if_statement: "'if'" '(' . expr ')' block opt_else
+   71 expr: . expr "operador booleano 'or'" bool_term
+   72     | . bool_term
+   73 bool_term: . bool_term "operador booleano 'and'" relational_expr
+   74          | . relational_expr
+   75 relational_expr: . relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name      ir al estado 84
+    lvalue           ir al estado 85
+    expr             ir al estado 119
+    bool_term        ir al estado 88
+    relational_expr  ir al estado 89
+    bit_shift_expr   ir al estado 90
+    arith_expr       ir al estado 91
+    arith_term       ir al estado 92
+    factor           ir al estado 93
+    constant         ir al estado 94
+    bool_constant    ir al estado 41
+
+
+estado 81
+
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   71 expr: . expr "operador booleano 'or'" bool_term
+   72     | . bool_term
+   73 bool_term: . bool_term "operador booleano 'and'" relational_expr
+   74          | . relational_expr
+   75 relational_expr: . relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   88       | '(' . expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name      ir al estado 84
+    lvalue           ir al estado 85
+    expr             ir al estado 120
+    bool_term        ir al estado 88
+    relational_expr  ir al estado 89
+    bit_shift_expr   ir al estado 90
+    arith_expr       ir al estado 91
+    arith_term       ir al estado 92
+    factor           ir al estado 93
+    constant         ir al estado 94
+    bool_constant    ir al estado 41
+
+
+estado 82
+
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   84       | "operador aritmetico '+' o '-'" . factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name    ir al estado 84
+    lvalue         ir al estado 85
+    factor         ir al estado 121
+    constant       ir al estado 94
+    bool_constant  ir al estado 41
+
+
+estado 83
+
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   83 factor: . '!' factor
+   83       | '!' . factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name    ir al estado 84
+    lvalue         ir al estado 85
+    factor         ir al estado 122
+    constant       ir al estado 94
+    bool_constant  ir al estado 41
+
+
+estado 84
+
+   86 factor: method_name . '(' opt_method_call_argument_list ')'
+
+    '('  desplazar e ir al estado 123
+
+
+estado 85
+
+   85 factor: lvalue .
+
+    $default  reduce usando la regla 85 (factor)
+
+
+estado 86
+
+   66 return_statement: "'return'" opt_expr .
+
+    $default  reduce usando la regla 66 (return_statement)
+
+
+estado 87
+
+   69 opt_expr: expr .  [';']
+   71 expr: expr . "operador booleano 'or'" bool_term
+
+    "operador booleano 'or'"  desplazar e ir al estado 124
+
+    $default  reduce usando la regla 69 (opt_expr)
+
+
+estado 88
+
+   72 expr: bool_term .  [';', ',', "operador booleano 'or'", ']', ')']
+   73 bool_term: bool_term . "operador booleano 'and'" relational_expr
+
+    "operador booleano 'and'"  desplazar e ir al estado 125
+
+    $default  reduce usando la regla 72 (expr)
+
+
+estado 89
+
+   74 bool_term: relational_expr .  [';', ',', "operador booleano 'or'", "operador booleano 'and'", ']', ')']
+   75 relational_expr: relational_expr . "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+
+    "operador relacional '>', '<', '>=', '<=', '==' o '!='"  desplazar e ir al estado 126
+
+    $default  reduce usando la regla 74 (bool_term)
+
+
+estado 90
+
+   76 relational_expr: bit_shift_expr .  [';', ',', "operador booleano 'or'", "operador booleano 'and'", "operador relacional '>', '<', '>=', '<=', '==' o '!='", ']', ')']
+   77 bit_shift_expr: bit_shift_expr . "operador de corrimiento de bits" arith_expr
+
+    "operador de corrimiento de bits"  desplazar e ir al estado 127
+
+    $default  reduce usando la regla 76 (relational_expr)
+
+
+estado 91
+
+   78 bit_shift_expr: arith_expr .  [';', ',', "operador booleano 'or'", "operador booleano 'and'", "operador de corrimiento de bits", "operador relacional '>', '<', '>=', '<=', '==' o '!='", ']', ')']
+   79 arith_expr: arith_expr . "operador aritmetico '+' o '-'" arith_term
+
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 128
+
+    $default  reduce usando la regla 78 (bit_shift_expr)
+
+
+estado 92
+
+   80 arith_expr: arith_term .  [';', ',', "operador booleano 'or'", "operador booleano 'and'", "operador de corrimiento de bits", "operador relacional '>', '<', '>=', '<=', '==' o '!='", "operador aritmetico '+' o '-'", ']', ')']
+   81 arith_term: arith_term . "operador aritmetico '*', '/', '%' " factor
+
+    "operador aritmetico '*', '/', '%' "  desplazar e ir al estado 129
+
+    $default  reduce usando la regla 80 (arith_expr)
+
+
+estado 93
+
+   82 arith_term: factor .
+
+    $default  reduce usando la regla 82 (arith_term)
+
+
+estado 94
+
+   87 factor: constant .
+
+    $default  reduce usando la regla 87 (factor)
+
+
+estado 95
+
+   56 lvalue: "'identificador'" . opt_array_dimension
+   57 opt_array_dimension: . '[' expr ']'
+   58                    | .  [';', ',', '=']
+
+    '['  desplazar e ir al estado 76
+
+    $default  reduce usando la regla 58 (opt_array_dimension)
+
+    opt_array_dimension  ir al estado 77
+
+
+estado 96
+
+   44 method_call: "'read'" read_argument_list .  [';']
+   54 read_argument_list: read_argument_list . ',' lvalue
+
+    ','  desplazar e ir al estado 130
+
+    $default  reduce usando la regla 44 (method_call)
+
+
+estado 97
+
+   55 read_argument_list: lvalue .
+
+    $default  reduce usando la regla 55 (read_argument_list)
+
+
+estado 98
+
+   52 print_argument: "constante de cadena" .
+
+    $default  reduce usando la regla 52 (print_argument)
+
+
+estado 99
+
+   43 method_call: "'print'" print_argument_list .  [';']
+   50 print_argument_list: print_argument_list . ',' print_argument
+
+    ','  desplazar e ir al estado 131
+
+    $default  reduce usando la regla 43 (method_call)
+
+
+estado 100
+
+   51 print_argument_list: print_argument .
+
+    $default  reduce usando la regla 51 (print_argument_list)
+
+
+estado 101
+
+   53 print_argument: expr .  [';', ',']
+   71 expr: expr . "operador booleano 'or'" bool_term
+
+    "operador booleano 'or'"  desplazar e ir al estado 124
+
+    $default  reduce usando la regla 53 (print_argument)
+
+
+estado 102
+
+   23 block: '{' opt_statement_list '}' .
+
+    $default  reduce usando la regla 23 (block)
+
+
+estado 103
+
+   98 local_variable: "'identificador'" .
+
+    $default  reduce usando la regla 98 (local_variable)
+
+
+estado 104
+
+   95 local_variable_decl: type local_variable_list .  [';']
+   96 local_variable_list: local_variable_list . ',' local_variable
+
+    ','  desplazar e ir al estado 132
+
+    $default  reduce usando la regla 95 (local_variable_decl)
+
+
+estado 105
+
+   97 local_variable_list: local_variable .
+
+    $default  reduce usando la regla 97 (local_variable_list)
+
+
+estado 106
+
+   29 statement_list: statement_list statement .
+
+    $default  reduce usando la regla 29 (statement_list)
+
+
+estado 107
+
+   31 statement: assign ';' .
+
+    $default  reduce usando la regla 31 (statement)
+
+
+estado 108
+
+   32 statement: method_call ';' .
+
+    $default  reduce usando la regla 32 (statement)
+
+
+estado 109
+
+   42 method_call: method_name '(' . opt_method_call_argument_list ')'
+   45 method_name: . "'identificador'"
+   46 opt_method_call_argument_list: . method_call_argument_list
+   47                              | .  [')']
+   48 method_call_argument_list: . method_call_argument_list ',' expr
+   49                          | . expr
+   56 lvalue: . "'identificador'" opt_array_dimension
+   71 expr: . expr "operador booleano 'or'" bool_term
+   72     | . bool_term
+   73 bool_term: . bool_term "operador booleano 'and'" relational_expr
+   74          | . relational_expr
+   75 relational_expr: . relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    $default  reduce usando la regla 47 (opt_method_call_argument_list)
+
+    method_name                    ir al estado 84
+    opt_method_call_argument_list  ir al estado 133
+    method_call_argument_list      ir al estado 134
+    lvalue                         ir al estado 85
+    expr                           ir al estado 135
+    bool_term                      ir al estado 88
+    relational_expr                ir al estado 89
+    bit_shift_expr                 ir al estado 90
+    arith_expr                     ir al estado 91
+    arith_term                     ir al estado 92
+    factor                         ir al estado 93
+    constant                       ir al estado 94
+    bool_constant                  ir al estado 41
+
+
+estado 110
+
+   41 assign: lvalue '=' . expr
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   71 expr: . expr "operador booleano 'or'" bool_term
+   72     | . bool_term
+   73 bool_term: . bool_term "operador booleano 'and'" relational_expr
+   74          | . relational_expr
+   75 relational_expr: . relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name      ir al estado 84
+    lvalue           ir al estado 85
+    expr             ir al estado 136
+    bool_term        ir al estado 88
+    relational_expr  ir al estado 89
+    bit_shift_expr   ir al estado 90
+    arith_expr       ir al estado 91
+    arith_term       ir al estado 92
+    factor           ir al estado 93
+    constant         ir al estado 94
+    bool_constant    ir al estado 41
+
+
+estado 111
+
+   36 statement: return_statement ';' .
+
+    $default  reduce usando la regla 36 (statement)
+
+
+estado 112
+
+   37 statement: break_statement ';' .
+
+    $default  reduce usando la regla 37 (statement)
+
+
+estado 113
+
+   38 statement: continue_statement ';' .
+
+    $default  reduce usando la regla 38 (statement)
+
+
+estado 114
+
+   40 statement: local_variable_decl ';' .
+
+    $default  reduce usando la regla 40 (statement)
+
+
+estado 115
+
+   57 opt_array_dimension: '[' expr . ']'
+   71 expr: expr . "operador booleano 'or'" bool_term
+
+    "operador booleano 'or'"  desplazar e ir al estado 124
+    ']'                       desplazar e ir al estado 137
+
+
+estado 116
+
+   62 while_statement: "'while'" '(' expr . ')' block
+   71 expr: expr . "operador booleano 'or'" bool_term
+
+    "operador booleano 'or'"  desplazar e ir al estado 124
+    ')'                       desplazar e ir al estado 138
+
+
+estado 117
+
+   65 for_assignment_list: assign .
+
+    $default  reduce usando la regla 65 (for_assignment_list)
+
+
+estado 118
+
+   63 for_statement: "'for'" '(' for_assignment_list . ';' expr ';' for_assignment_list ')' block
+   64 for_assignment_list: for_assignment_list . ',' assign
+
+    ';'  desplazar e ir al estado 139
+    ','  desplazar e ir al estado 140
+
+
+estado 119
+
+   59 if_statement: "'if'" '(' expr . ')' block opt_else
+   71 expr: expr . "operador booleano 'or'" bool_term
+
+    "operador booleano 'or'"  desplazar e ir al estado 124
+    ')'                       desplazar e ir al estado 141
+
+
+estado 120
+
+   71 expr: expr . "operador booleano 'or'" bool_term
+   88 factor: '(' expr . ')'
+
+    "operador booleano 'or'"  desplazar e ir al estado 124
+    ')'                       desplazar e ir al estado 142
+
+
+estado 121
+
+   84 factor: "operador aritmetico '+' o '-'" factor .
+
+    $default  reduce usando la regla 84 (factor)
+
+
+estado 122
+
+   83 factor: '!' factor .
+
+    $default  reduce usando la regla 83 (factor)
+
+
+estado 123
+
+   45 method_name: . "'identificador'"
+   46 opt_method_call_argument_list: . method_call_argument_list
+   47                              | .  [')']
+   48 method_call_argument_list: . method_call_argument_list ',' expr
+   49                          | . expr
+   56 lvalue: . "'identificador'" opt_array_dimension
+   71 expr: . expr "operador booleano 'or'" bool_term
+   72     | . bool_term
+   73 bool_term: . bool_term "operador booleano 'and'" relational_expr
+   74          | . relational_expr
+   75 relational_expr: . relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   86       | method_name '(' . opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    $default  reduce usando la regla 47 (opt_method_call_argument_list)
+
+    method_name                    ir al estado 84
+    opt_method_call_argument_list  ir al estado 143
+    method_call_argument_list      ir al estado 134
+    lvalue                         ir al estado 85
+    expr                           ir al estado 135
+    bool_term                      ir al estado 88
+    relational_expr                ir al estado 89
+    bit_shift_expr                 ir al estado 90
+    arith_expr                     ir al estado 91
+    arith_term                     ir al estado 92
+    factor                         ir al estado 93
+    constant                       ir al estado 94
+    bool_constant                  ir al estado 41
+
+
+estado 124
+
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   71 expr: expr "operador booleano 'or'" . bool_term
+   73 bool_term: . bool_term "operador booleano 'and'" relational_expr
+   74          | . relational_expr
+   75 relational_expr: . relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name      ir al estado 84
+    lvalue           ir al estado 85
+    bool_term        ir al estado 144
+    relational_expr  ir al estado 89
+    bit_shift_expr   ir al estado 90
+    arith_expr       ir al estado 91
+    arith_term       ir al estado 92
+    factor           ir al estado 93
+    constant         ir al estado 94
+    bool_constant    ir al estado 41
+
+
+estado 125
+
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   73 bool_term: bool_term "operador booleano 'and'" . relational_expr
+   75 relational_expr: . relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name      ir al estado 84
+    lvalue           ir al estado 85
+    relational_expr  ir al estado 145
+    bit_shift_expr   ir al estado 90
+    arith_expr       ir al estado 91
+    arith_term       ir al estado 92
+    factor           ir al estado 93
+    constant         ir al estado 94
+    bool_constant    ir al estado 41
+
+
+estado 126
+
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   75 relational_expr: relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name     ir al estado 84
+    lvalue          ir al estado 85
+    bit_shift_expr  ir al estado 146
+    arith_expr      ir al estado 91
+    arith_term      ir al estado 92
+    factor          ir al estado 93
+    constant        ir al estado 94
+    bool_constant   ir al estado 41
+
+
+estado 127
+
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   77 bit_shift_expr: bit_shift_expr "operador de corrimiento de bits" . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name    ir al estado 84
+    lvalue         ir al estado 85
+    arith_expr     ir al estado 147
+    arith_term     ir al estado 92
+    factor         ir al estado 93
+    constant       ir al estado 94
+    bool_constant  ir al estado 41
+
+
+estado 128
+
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   79 arith_expr: arith_expr "operador aritmetico '+' o '-'" . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name    ir al estado 84
+    lvalue         ir al estado 85
+    arith_term     ir al estado 148
+    factor         ir al estado 93
+    constant       ir al estado 94
+    bool_constant  ir al estado 41
+
+
+estado 129
+
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   81 arith_term: arith_term "operador aritmetico '*', '/', '%' " . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name    ir al estado 84
+    lvalue         ir al estado 85
+    factor         ir al estado 149
+    constant       ir al estado 94
+    bool_constant  ir al estado 41
+
+
+estado 130
+
+   54 read_argument_list: read_argument_list ',' . lvalue
+   56 lvalue: . "'identificador'" opt_array_dimension
+
+    "'identificador'"  desplazar e ir al estado 95
+
+    lvalue  ir al estado 150
+
+
+estado 131
+
+   45 method_name: . "'identificador'"
+   50 print_argument_list: print_argument_list ',' . print_argument
+   52 print_argument: . "constante de cadena"
+   53               | . expr
+   56 lvalue: . "'identificador'" opt_array_dimension
+   71 expr: . expr "operador booleano 'or'" bool_term
+   72     | . bool_term
+   73 bool_term: . bool_term "operador booleano 'and'" relational_expr
+   74          | . relational_expr
+   75 relational_expr: . relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    "constante de cadena"            desplazar e ir al estado 98
+    '!'                              desplazar e ir al estado 83
+
+    method_name      ir al estado 84
+    print_argument   ir al estado 151
+    lvalue           ir al estado 85
+    expr             ir al estado 101
+    bool_term        ir al estado 88
+    relational_expr  ir al estado 89
+    bit_shift_expr   ir al estado 90
+    arith_expr       ir al estado 91
+    arith_term       ir al estado 92
+    factor           ir al estado 93
+    constant         ir al estado 94
+    bool_constant    ir al estado 41
+
+
+estado 132
+
+   96 local_variable_list: local_variable_list ',' . local_variable
+   98 local_variable: . "'identificador'"
+
+    "'identificador'"  desplazar e ir al estado 103
+
+    local_variable  ir al estado 152
+
+
+estado 133
+
+   42 method_call: method_name '(' opt_method_call_argument_list . ')'
+
+    ')'  desplazar e ir al estado 153
+
+
+estado 134
+
+   46 opt_method_call_argument_list: method_call_argument_list .  [')']
+   48 method_call_argument_list: method_call_argument_list . ',' expr
+
+    ','  desplazar e ir al estado 154
+
+    $default  reduce usando la regla 46 (opt_method_call_argument_list)
+
+
+estado 135
+
+   49 method_call_argument_list: expr .  [',', ')']
+   71 expr: expr . "operador booleano 'or'" bool_term
+
+    "operador booleano 'or'"  desplazar e ir al estado 124
+
+    $default  reduce usando la regla 49 (method_call_argument_list)
+
+
+estado 136
+
+   41 assign: lvalue '=' expr .  [';', ',', ')']
+   71 expr: expr . "operador booleano 'or'" bool_term
+
+    "operador booleano 'or'"  desplazar e ir al estado 124
+
+    $default  reduce usando la regla 41 (assign)
+
+
+estado 137
+
+   57 opt_array_dimension: '[' expr ']' .
+
+    $default  reduce usando la regla 57 (opt_array_dimension)
+
+
+estado 138
+
+   23 block: . '{' opt_statement_list '}'
+   62 while_statement: "'while'" '(' expr ')' . block
+
+    '{'  desplazar e ir al estado 48
+
+    block  ir al estado 155
+
+
+estado 139
+
+   45 method_name: . "'identificador'"
+   56 lvalue: . "'identificador'" opt_array_dimension
+   63 for_statement: "'for'" '(' for_assignment_list ';' . expr ';' for_assignment_list ')' block
+   71 expr: . expr "operador booleano 'or'" bool_term
+   72     | . bool_term
+   73 bool_term: . bool_term "operador booleano 'and'" relational_expr
+   74          | . relational_expr
+   75 relational_expr: . relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name      ir al estado 84
+    lvalue           ir al estado 85
+    expr             ir al estado 156
+    bool_term        ir al estado 88
+    relational_expr  ir al estado 89
+    bit_shift_expr   ir al estado 90
+    arith_expr       ir al estado 91
+    arith_term       ir al estado 92
+    factor           ir al estado 93
+    constant         ir al estado 94
+    bool_constant    ir al estado 41
+
+
+estado 140
+
+   41 assign: . lvalue '=' expr
+   56 lvalue: . "'identificador'" opt_array_dimension
+   64 for_assignment_list: for_assignment_list ',' . assign
+
+    "'identificador'"  desplazar e ir al estado 95
+
+    assign  ir al estado 157
+    lvalue  ir al estado 68
+
+
+estado 141
+
+   23 block: . '{' opt_statement_list '}'
+   59 if_statement: "'if'" '(' expr ')' . block opt_else
+
+    '{'  desplazar e ir al estado 48
+
+    block  ir al estado 158
+
+
+estado 142
+
+   88 factor: '(' expr ')' .
+
+    $default  reduce usando la regla 88 (factor)
+
+
+estado 143
+
+   86 factor: method_name '(' opt_method_call_argument_list . ')'
+
+    ')'  desplazar e ir al estado 159
+
+
+estado 144
+
+   71 expr: expr "operador booleano 'or'" bool_term .  [';', ',', "operador booleano 'or'", ']', ')']
+   73 bool_term: bool_term . "operador booleano 'and'" relational_expr
+
+    "operador booleano 'and'"  desplazar e ir al estado 125
+
+    $default  reduce usando la regla 71 (expr)
+
+
+estado 145
+
+   73 bool_term: bool_term "operador booleano 'and'" relational_expr .  [';', ',', "operador booleano 'or'", "operador booleano 'and'", ']', ')']
+   75 relational_expr: relational_expr . "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+
+    "operador relacional '>', '<', '>=', '<=', '==' o '!='"  desplazar e ir al estado 126
+
+    $default  reduce usando la regla 73 (bool_term)
+
+
+estado 146
+
+   75 relational_expr: relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr .  [';', ',', "operador booleano 'or'", "operador booleano 'and'", "operador relacional '>', '<', '>=', '<=', '==' o '!='", ']', ')']
+   77 bit_shift_expr: bit_shift_expr . "operador de corrimiento de bits" arith_expr
+
+    "operador de corrimiento de bits"  desplazar e ir al estado 127
+
+    $default  reduce usando la regla 75 (relational_expr)
+
+
+estado 147
+
+   77 bit_shift_expr: bit_shift_expr "operador de corrimiento de bits" arith_expr .  [';', ',', "operador booleano 'or'", "operador booleano 'and'", "operador de corrimiento de bits", "operador relacional '>', '<', '>=', '<=', '==' o '!='", ']', ')']
+   79 arith_expr: arith_expr . "operador aritmetico '+' o '-'" arith_term
+
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 128
+
+    $default  reduce usando la regla 77 (bit_shift_expr)
+
+
+estado 148
+
+   79 arith_expr: arith_expr "operador aritmetico '+' o '-'" arith_term .  [';', ',', "operador booleano 'or'", "operador booleano 'and'", "operador de corrimiento de bits", "operador relacional '>', '<', '>=', '<=', '==' o '!='", "operador aritmetico '+' o '-'", ']', ')']
+   81 arith_term: arith_term . "operador aritmetico '*', '/', '%' " factor
+
+    "operador aritmetico '*', '/', '%' "  desplazar e ir al estado 129
+
+    $default  reduce usando la regla 79 (arith_expr)
+
+
+estado 149
+
+   81 arith_term: arith_term "operador aritmetico '*', '/', '%' " factor .
+
+    $default  reduce usando la regla 81 (arith_term)
+
+
+estado 150
+
+   54 read_argument_list: read_argument_list ',' lvalue .
+
+    $default  reduce usando la regla 54 (read_argument_list)
+
+
+estado 151
+
+   50 print_argument_list: print_argument_list ',' print_argument .
+
+    $default  reduce usando la regla 50 (print_argument_list)
+
+
+estado 152
+
+   96 local_variable_list: local_variable_list ',' local_variable .
+
+    $default  reduce usando la regla 96 (local_variable_list)
+
+
+estado 153
+
+   42 method_call: method_name '(' opt_method_call_argument_list ')' .
+
+    $default  reduce usando la regla 42 (method_call)
+
+
+estado 154
+
+   45 method_name: . "'identificador'"
+   48 method_call_argument_list: method_call_argument_list ',' . expr
+   56 lvalue: . "'identificador'" opt_array_dimension
+   71 expr: . expr "operador booleano 'or'" bool_term
+   72     | . bool_term
+   73 bool_term: . bool_term "operador booleano 'and'" relational_expr
+   74          | . relational_expr
+   75 relational_expr: . relational_expr "operador relacional '>', '<', '>=', '<=', '==' o '!='" bit_shift_expr
+   76                | . bit_shift_expr
+   77 bit_shift_expr: . bit_shift_expr "operador de corrimiento de bits" arith_expr
+   78               | . arith_expr
+   79 arith_expr: . arith_expr "operador aritmetico '+' o '-'" arith_term
+   80           | . arith_term
+   81 arith_term: . arith_term "operador aritmetico '*', '/', '%' " factor
+   82           | . factor
+   83 factor: . '!' factor
+   84       | . "operador aritmetico '+' o '-'" factor
+   85       | . lvalue
+   86       | . method_name '(' opt_method_call_argument_list ')'
+   87       | . constant
+   88       | . '(' expr ')'
+   89 constant: . "constante entera"
+   90         | . "constante caracter"
+   91         | . "constante real"
+   92         | . bool_constant
+   93 bool_constant: . "'true'"
+   94              | . "'false'"
+
+    '('                              desplazar e ir al estado 81
+    "'identificador'"                desplazar e ir al estado 51
+    "'true'"                         desplazar e ir al estado 35
+    "'false'"                        desplazar e ir al estado 36
+    "operador aritmetico '+' o '-'"  desplazar e ir al estado 82
+    "constante caracter"             desplazar e ir al estado 37
+    "constante entera"               desplazar e ir al estado 38
+    "constante real"                 desplazar e ir al estado 39
+    '!'                              desplazar e ir al estado 83
+
+    method_name      ir al estado 84
+    lvalue           ir al estado 85
+    expr             ir al estado 160
+    bool_term        ir al estado 88
+    relational_expr  ir al estado 89
+    bit_shift_expr   ir al estado 90
+    arith_expr       ir al estado 91
+    arith_term       ir al estado 92
+    factor           ir al estado 93
+    constant         ir al estado 94
+    bool_constant    ir al estado 41
+
+
+estado 155
+
+   62 while_statement: "'while'" '(' expr ')' block .
+
+    $default  reduce usando la regla 62 (while_statement)
+
+
+estado 156
+
+   63 for_statement: "'for'" '(' for_assignment_list ';' expr . ';' for_assignment_list ')' block
+   71 expr: expr . "operador booleano 'or'" bool_term
+
+    ';'                       desplazar e ir al estado 161
+    "operador booleano 'or'"  desplazar e ir al estado 124
+
+
+estado 157
+
+   64 for_assignment_list: for_assignment_list ',' assign .
+
+    $default  reduce usando la regla 64 (for_assignment_list)
+
+
+estado 158
+
+   59 if_statement: "'if'" '(' expr ')' block . opt_else
+   60 opt_else: . "'else'" block
+   61         | .  ["'identificador'", "'break'", "'continue'", "'while'", "'for'", "'if'", "'return'", "'read'", "'print'", "'int'", "'void'", "'boolean'", '{', '}']
+
+    "'else'"  desplazar e ir al estado 162
+
+    $default  reduce usando la regla 61 (opt_else)
+
+    opt_else  ir al estado 163
+
+
+estado 159
+
+   86 factor: method_name '(' opt_method_call_argument_list ')' .
+
+    $default  reduce usando la regla 86 (factor)
+
+
+estado 160
+
+   48 method_call_argument_list: method_call_argument_list ',' expr .  [',', ')']
+   71 expr: expr . "operador booleano 'or'" bool_term
+
+    "operador booleano 'or'"  desplazar e ir al estado 124
+
+    $default  reduce usando la regla 48 (method_call_argument_list)
+
+
+estado 161
+
+   41 assign: . lvalue '=' expr
+   56 lvalue: . "'identificador'" opt_array_dimension
+   63 for_statement: "'for'" '(' for_assignment_list ';' expr ';' . for_assignment_list ')' block
+   64 for_assignment_list: . for_assignment_list ',' assign
+   65                    | . assign
+
+    "'identificador'"  desplazar e ir al estado 95
+
+    assign               ir al estado 117
+    lvalue               ir al estado 68
+    for_assignment_list  ir al estado 164
+
+
+estado 162
+
+   23 block: . '{' opt_statement_list '}'
+   60 opt_else: "'else'" . block
+
+    '{'  desplazar e ir al estado 48
+
+    block  ir al estado 165
+
+
+estado 163
+
+   59 if_statement: "'if'" '(' expr ')' block opt_else .
+
+    $default  reduce usando la regla 59 (if_statement)
+
+
+estado 164
+
+   63 for_statement: "'for'" '(' for_assignment_list ';' expr ';' for_assignment_list . ')' block
+   64 for_assignment_list: for_assignment_list . ',' assign
+
+    ','  desplazar e ir al estado 140
+    ')'  desplazar e ir al estado 166
+
+
+estado 165
+
+   60 opt_else: "'else'" block .
+
+    $default  reduce usando la regla 60 (opt_else)
+
+
+estado 166
+
+   23 block: . '{' opt_statement_list '}'
+   63 for_statement: "'for'" '(' for_assignment_list ';' expr ';' for_assignment_list ')' . block
+
+    '{'  desplazar e ir al estado 48
+
+    block  ir al estado 167
+
+
+estado 167
+
+   63 for_statement: "'for'" '(' for_assignment_list ';' expr ';' for_assignment_list ')' block .
+
+    $default  reduce usando la regla 63 (for_statement)

@@ -73,8 +73,8 @@
 %{
 	#include "decaf_tree.h"
 	int statement_line;
-	int deepLevel = 1;
-
+	int deepLevel = 0;
+	int currentScopeSize = 0;
 
     bool insideLoop = false;
     bool breakFound = false;
@@ -84,6 +84,7 @@
     ExpressionType *currentReturnType = NULL; 
 
     Function *currentFunction = NULL;
+    Context *context = NULL;
 
     LocalVariablesMap *local_variables = NULL;	
 
@@ -514,6 +515,7 @@ toString(ReadStatement) {
 /*** Validate Semantics for Expressions ***/
 /*=====================================================================*/
 validateSemantics(ClassDef) {
+	context = new Context;
 	if (field_def_list != NULL) {
 	    list<VariableDef*>::iterator variable_iterator = field_def_list->begin();
 	    
@@ -523,6 +525,7 @@ validateSemantics(ClassDef) {
 	        variable_iterator++;
 	    }
 	}
+	ContextManager::getInstance().registerContext(0, context);
 
     list<MethodDef*>::iterator method_iterator = method_def_list->begin();
     
@@ -719,37 +722,65 @@ validateSemantics(UnaryExpression) {
 
 validateSemantics(LValueExpression) {
 	cout << "inside lvalue with " << variable_name << endl;
-	Variable *variable_def = getSymbolTableInstance()->getVariable(variable_name);
-	//TODO: agregar los scopes cuando ya esten.
+	Variable *variable_def = NULL;
 
-    DecoratedExpression *d_array_index = NULL;
-    if (array_index != NULL) {
-        if (dynamic_cast<ArrayVariable*>(variable_def) == NULL) {
-        	ErrorHandler::getInstance().handleError(statement_line, 
+	int variable_offset = ContextManager::getInstance().getOffset(deepLevel, variable_name);
+	int variable_level = ContextManager::getInstance().getDeepLevel(deepLevel, variable_name);
+	bool isGlobal = false, isParameter = false;
+	DecoratedExpression *d_array_index = NULL;
+	ExpressionType *type = NULL;
+
+	if (variable_offset == -1) {
+		variable_def = getSymbolTableInstance()->getVariable(variable_name);
+		if (array_index != NULL) {
+			if (dynamic_cast<ArrayVariable*>(variable_def) == NULL) {
+	        	ErrorHandler::getInstance().handleError(statement_line, 
+	        		"variable '" + variable_name + "' is not an array");
+	        }
+	        d_array_index = (DecoratedExpression*)array_index->validateSemantics();
+	        if (d_array_index == NULL){
+	        	return NULL;
+	        } else {
+	        	if (!d_array_index->type->isEquivalent(new IntegerType())) {
+	        		ErrorHandler::getInstance().handleError(statement_line, 
+	        			"array index expression must be of int type");
+	        		return NULL;
+	        	}
+	        }
+		}
+		if (variable_def != NULL) {
+			type = variable_def->type;
+			isGlobal = true;
+		}
+
+	} else {
+		if (array_index != NULL) {
+			ErrorHandler::getInstance().handleError(statement_line, 
         		"variable '" + variable_name + "' is not an array");
-        }
-        d_array_index = (DecoratedExpression*)array_index->validateSemantics();
+		}
+		type = TypeToExpressionType(ContextManager::getInstance().getType(deepLevel, variable_name));
+	}
 
-        if (d_array_index == NULL){
-        	return NULL;
-        } else {
-        	if (!d_array_index->type->isEquivalent(new IntegerType())) {
-        		ErrorHandler::getInstance().handleError(statement_line, 
-        			"array index expression must be of int type");
-        		return NULL;
-        	}
-        }
-    }
 
-    bool isParameter = currentFunction->findParameter(variable_name) != NULL;
-
-    if (variable_def == NULL && !isParameter) {
+    SimpleVariable *parameter = (SimpleVariable*)currentFunction->findParameter(variable_name);
+    if (variable_offset == -1 && variable_def == NULL && parameter == NULL) {
 		ErrorHandler::getInstance().handleError(statement_line, 
 			"variable '" + variable_name + "' not declared in this scope");
 		return NULL;
 	}
 
-    return new DecoratedLValue(new IntegerType(), variable_name, d_array_index);
+    if (parameter != NULL && variable_offset == -1) {
+    	type = parameter->type;
+    	isParameter = true;
+    	variable_offset = currentFunction->offsetFromFp(variable_name);
+    }    
+
+	DecoratedLValue *d_lvalue = new DecoratedLValue(type, variable_name, d_array_index);
+	d_lvalue->offset = variable_offset;
+	d_lvalue->deepLevel = variable_level;
+	d_lvalue->isParameter = isParameter;
+	d_lvalue->isGlobal = isGlobal;
+    return d_lvalue;
 }
 
 validateSemantics(MethodCallExpression) {    
@@ -855,11 +886,13 @@ validateSemantics(AssignmentStatement) {
     	cout << "returning null" << endl;
     	return NULL;
     }
-
+    cout << "¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡" << endl;
     if (!(d_expr->type->isEquivalent(d_lvalue->type))) {
+    	
     	ErrorHandler::getInstance().handleError(line, 
     		"type mismatch assigning " + d_expr->type->stringValue() 
     		+ " to " + d_lvalue->type->stringValue());
+    	cout << "!!!!!!!!!!!!!!!!!!!" << endl;
     	return NULL;
     }
 
@@ -1091,33 +1124,49 @@ validateSemantics(BlockStatement) {
 	if (isUnreachableStatement()) 
 		ErrorHandler::getInstance().handleWarning(line, "unreachable statement");
 
+	deepLevel += 1;
+	ContextManager::getInstance().pushScopeSize(currentScopeSize);
+	ContextManager::getInstance().registerContext(deepLevel, new Context);
+    
+	currentScopeSize = 0;
+
 	statement_line = line;
 
     list<Statement*>::iterator statement_iterator = statement_list->begin();
     
     DecoratedStatementList  *decorated_statement_list = new DecoratedStatementList;
 
-    //TODO: hacer pop a un stack del mapa actual
-
     int nullCount = 0;
-    deepLevel += 1;
+    
     while (statement_iterator != statement_list->end()) {
         Statement *statement = *statement_iterator;
+        
         DecoratedStatement *decorated_statement =  (DecoratedStatement*)statement->validateSemantics();
 
-        if (decorated_statement != NULL)
-        	decorated_statement_list->push_back(decorated_statement);
-        else
-        	nullCount++;
+        if (dynamic_cast<LocalVariableDefList*>(statement) == NULL) {
+	        if (decorated_statement != NULL)
+	        	decorated_statement_list->push_back(decorated_statement);
+	        else
+	        	nullCount++;
+	    }
         
         statement_iterator++;
     }
+
     cout << "nullCount " << nullCount << endl;
     if (nullCount>0)
     	return NULL;
 
     DecoratedBlockStatement *newBlock = new DecoratedBlockStatement(line, decorated_statement_list);
-    newBlock->deepLevel = deepLevel - 1;
+    newBlock->deepLevel = deepLevel;
+    newBlock->scopeSize = currentScopeSize;
+    newBlock->context = ContextManager::getInstance().getContext(deepLevel);
+    cout << "scope size set to " << currentScopeSize << endl;
+    cout << "deep level " << deepLevel << endl;
+    
+    currentScopeSize = ContextManager::getInstance().getCurrentScopeSize();
+    ContextManager::getInstance().unregisterContext(deepLevel);
+    ContextManager::getInstance().popScopeSize();
     deepLevel -= 1;
     
     return newBlock;
@@ -1187,8 +1236,16 @@ validateSemantics(MethodDef) {
 }
 
 validateSemantics(LocalVariableDefList) {
-	/* DO NOTHING */
+	context = ContextManager::getInstance().getContext(deepLevel);
 	currentFunction->activation_size += variable_names->size() * 4;
+	list<string>::iterator string_iterator = variable_names->begin();
+	while (string_iterator != variable_names->end()) {
+		string variable_name = (*string_iterator);
+		cout << "variable " << variable_name << " offset " << currentScopeSize << endl;
+		context->saveVarInfo(variable_name, new VarInfo(currentScopeSize, 4, variable_type));
+		currentScopeSize += 4;
+		string_iterator++;		
+	}
 	return NULL;
 }
 
