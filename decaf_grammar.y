@@ -231,21 +231,22 @@ statement
 ;
 		
 assign	:
-		lvalue '=' expr { $$ = new AssignmentStatement(@1.first_line, @1.first_column, $1, $3); };
+		lvalue '=' expr { $$ = new AssignmentStatement(@1.first_line, @1.first_column, $1, $3); 
+			printf("%s\n", "dentro de assign");};
 		
 
 method_call:
-		method_name '(' opt_method_call_argument_list ')'	{ $$ = new MethodCallStatement(@1.first_line, @1.first_column, $1, $3); }	
+		method_name '(' opt_method_call_argument_list ')'	{ $$ = new MethodCallStatement(@1.first_line, @1.first_column, $1, $3); printf("termino method call syntax\n");}	
 		| K_PRINT print_argument_list				{ $$ = new PrintStatement(@1.first_line, @1.first_column, $2); }
 		| K_READ read_argument_list				{ $$ = new ReadStatement(@1.first_line, @1.first_column, $2); }
 ;
 
 method_name
-	:	ID	{ $$ = $1; }
+	:	ID	{ $$ = $1; printf("%s: %s\n", "method inicia", $1); }
 ;
 
 opt_method_call_argument_list:	
-				method_call_argument_list	{ $$ = $1; }
+				method_call_argument_list	{ $$ = $1; printf("%s: %d\n", "termino parametros de funcion ", $1->size());}
 				| /*Nada*/			{ $$ = 0; }
 ;
 
@@ -367,7 +368,7 @@ bool_constant:
 ;
 
 local_variable_decl:
-		type local_variable_list   {$$ = $2; ((LocalVariableDefList*)$$)->variable_type = $1; }
+		type local_variable_list   {printf("aki en local\n"); $$ = $2; ((LocalVariableDefList*)$$)->variable_type = $1; }
 ;
 
 local_variable_list: local_variable_list ',' local_variable   {$$ = $1; $$->variable_names->push_back($3);}

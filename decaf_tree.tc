@@ -1021,6 +1021,7 @@ validateSemantics(WhileStatement) {
 
     d_expr->line = line;
     d_stmt->line = line;
+    ((DecoratedBlockStatement*)d_stmt)->belongsToLoop = true;
 
     return new DecoratedWhileStatement(line, d_expr, d_stmt);
 }
@@ -1037,6 +1038,9 @@ validateSemantics(ForStatement) {
 
     insideLoop = true;
     DecoratedBlockStatement *d_body = (DecoratedBlockStatement*)loop_body->validateSemantics();
+    if (d_body == NULL) 
+    	return NULL;
+    d_body->belongsToLoop = true;
     insideLoop = false;
     continueFound = false;
     breakFound = false;

@@ -6,7 +6,7 @@ class Factorial
 
 		x = factorial(6);
 
-		print "Factorial de ""6"" = ", x;
+		print "Factorial de 6 = ", x;
 	}
 
 	// Funcion que calcula el factorial

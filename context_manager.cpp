@@ -47,7 +47,7 @@ void Context::saveVarInfo(string variable_name, VarInfo *var_info) {
 }
 
 int Context::transformOffset(int offset) {
-	int off = variables.size()*4;
+	int off = (variables.size() - 1)*4;
 	return off - offset;
 }
 
@@ -152,4 +152,43 @@ Type ContextManager::getType(int displayStartPosition, string variable_name) {
 		}
 	}
 	return Void;
+}
+
+void ContextManager::pushUnregisterLogic(string unregisterLogic, bool belongsToLoop) {
+	unregisterLogicStack.push(unregisterLogic);
+	registeredBlockBelongsToLoop.push(belongsToLoop);
+}
+
+void ContextManager::popUnregisterLogic() {
+	if (unregisterLogicStack.size()>0)
+		unregisterLogicStack.pop();
+
+	if (registeredBlockBelongsToLoop.size()>0)
+		registeredBlockBelongsToLoop.pop();
+}
+
+string ContextManager::getUnregisterLogic() {
+	return unregisterLogicStack.top();
+}
+
+bool ContextManager::belongsToLoop() {
+	return registeredBlockBelongsToLoop.top();
+}
+
+bool ContextManager::unregisterLogicsIsEmpty() {
+	return unregisterLogicStack.size() == 0;
+}
+
+void ContextManager::pushEpilog(string epilog) {
+	epilogs.push(epilog);
+}
+
+void ContextManager::popEpilog() {
+	epilogs.pop();
+}
+
+string ContextManager::getEpilog() {
+	if (epilogs.size() > 0)
+		return epilogs.top();
+	return "";
 }

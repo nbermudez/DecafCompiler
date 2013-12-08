@@ -55,9 +55,24 @@ public:
 
     Context *getContext(int displayPosition);
 
+    void pushUnregisterLogic(string unregisterLogic, bool belongsToLoop);
+    void popUnregisterLogic();
+    string getUnregisterLogic();
+    bool unregisterLogicsIsEmpty();
+
+    void pushEpilog(string epilog);
+    void popEpilog();
+    string getEpilog();
+    bool epilogsIsEmpty();
+
+    bool belongsToLoop();
+
 private:
 	ContextManager();
 	stack<int> scopeSizes;
+    stack<string> unregisterLogicStack;
+    stack<string> epilogs;
+    stack<bool> registeredBlockBelongsToLoop;
 
     Context* display[MAX_DEEP_NESTING];
 

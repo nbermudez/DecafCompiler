@@ -5,7 +5,7 @@ LabelManager::LabelManager() {
 	endif_count = 0;
 	for_count = 0;
 	while_count = 0;
-	out_of_while_count = -1;
+	out_of_while_count = 0;
 	out_of_for_count = 0;
 	continue_count = 0;
 	function_end_count = 0;

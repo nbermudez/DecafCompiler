@@ -1,0 +1,21 @@
+class SimpleTest {
+	int a;
+	int fun() {
+		while(true) {
+			print "hola";
+			{
+				int x;
+				return 2;
+				//
+				//break;
+			}
+		}
+		print "potatoooo", "\n";
+		return 1;
+	}
+
+	void main() {
+		a = fun();
+		print a;
+	}
+}

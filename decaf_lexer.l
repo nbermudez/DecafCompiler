@@ -86,9 +86,10 @@ LETTER   [a-zA-Z]
 <comment>\n             { yylloc->last_line++; yylloc->first_column = 0; }
 <comment>"*"+"/"        BEGIN(INITIAL);
 
-[ \t]+		{ BeginToken(yytext, yylloc); }
+[ ]+		{ BeginToken(yytext, yylloc); }
+"\t"+		{ BeginToken(yytext, yylloc); }
 "\n"		{ printf("aki\n");yylloc->last_line++; yylloc->first_column = 0; }
-"\r\n"		{ yylloc->last_line++; yylloc->first_column = 0; }
+
 .           printf( "%d:Caracter no reconocido: #%d, %s\n", yylloc->last_line, yytext[0], yytext );
 
 %%

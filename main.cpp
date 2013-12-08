@@ -5,6 +5,7 @@
 #include "decaf_tree.h"
 
 extern ifstream in;
+ofstream out;
 extern int current_line;
 
 static int errors = 0;
@@ -20,6 +21,7 @@ int main(int argc, char *argv[])
 	if (argc > 0) {
 		++argv, --argc; /* El primer argumento es el nombre del programa */
 		in.open(argv[0], ifstream::in|ifstream::binary);
+		out.open(argv[1], ofstream::out);
 
 		if (!in.is_open()) {
 			cerr << "No se pudo abrir el archivo " << argv[0] << endl << endl;
@@ -43,10 +45,12 @@ int main(int argc, char *argv[])
 			cout << "\033[1;31m" << ErrorHandler::getInstance().allErrors() << "\033[0m\n";
         } else {
         	cout << "\033[1;32m" << "generating code..." << "\033[0m\n" << endl;
-        	cout << decorated_class->generateCode(0);
+        	out << decorated_class->generateCode(0);
+
         }
         
 	}
+	out.close();
 
 	return 0;
 }
