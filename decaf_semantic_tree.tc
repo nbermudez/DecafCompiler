@@ -675,7 +675,7 @@ generateCode(DecoratedMethodCallExpression) {
 
     while (it != arguments->end()) {
         DecoratedExpression *argument = (*it);
-        if (argc <= 4) {//usar $a0...$a3
+        if (argc < 4) {//usar $a0...$a3
             string param;
             param = RegisterManager::getInstance().getParamRegister();
 
@@ -688,11 +688,15 @@ generateCode(DecoratedMethodCallExpression) {
             out << indentation << "#end saving" << endl;
             out << indent(indentLevel) << "move " << param << ", " << argument->place << endl;
             RegisterManager::getInstance().freeRegister(argument->place);
+            argc += 1;
         } else {
-            //poner en la pila
+            out << argument->generateCode(indentLevel + 1);
+            out << indentation << "sw " << argument->place << ", " << offset << "($sp)" << endl;
+            offset += 4;
         }
         it++;
     }
+    
     out << indent(indentLevel) << "jal " << name << endl;
 
     list<string>::iterator string_iterator = toSaveRegisters.begin();
@@ -704,7 +708,6 @@ generateCode(DecoratedMethodCallExpression) {
         
         string_iterator++;
     }
-    //OJO: con el valor de size, aparece -4 para fibonacci en vez de 4!!
     out << indentation << "addi $sp, $sp, " << size << endl;
 
     out << indentation << "#end method call" << name << endl;
@@ -732,7 +735,7 @@ generateCode(DecoratedAssignmentStatement) {
 }
 
 generateCode(DecoratedMethodCallStatement) {
-        ostringstream out; 
+    ostringstream out; 
 
     string indentation = indent(indentLevel + 1);
 
@@ -747,7 +750,7 @@ generateCode(DecoratedMethodCallStatement) {
 
     while (it != arguments->end()) {
         DecoratedExpression *argument = (*it);
-        if (argc <= 4) {//usar $a0...$a3
+        if (argc < 4) {//usar $a0...$a3
             string param;
             param = RegisterManager::getInstance().getParamRegister();
 
@@ -760,11 +763,15 @@ generateCode(DecoratedMethodCallStatement) {
             out << indentation << "#end saving" << endl;
             out << indent(indentLevel) << "move " << param << ", " << argument->place << endl;
             RegisterManager::getInstance().freeRegister(argument->place);
+            argc += 1;
         } else {
-            //poner en la pila
+            out << argument->generateCode(indentLevel + 1);
+            out << indentation << "sw " << argument->place << ", " << offset << "($sp)" << endl;
+            offset += 4;
         }
         it++;
     }
+    
     out << indent(indentLevel) << "jal " << name << endl;
 
     list<string>::iterator string_iterator = toSaveRegisters.begin();
@@ -776,14 +783,11 @@ generateCode(DecoratedMethodCallStatement) {
         
         string_iterator++;
     }
-    //OJO: con el valor de size, aparece -4 para fibonacci en vez de 4!!
     out << indentation << "addi $sp, $sp, " << size << endl;
 
     out << indentation << "#end method call" << name << endl;
 
     RegisterManager::getInstance().freeParamRegisters();
-    
-    //this->place = "$v0";
 
     return out.str();
 }
@@ -1172,6 +1176,11 @@ generateCode(DecoratedClass) {
         prologo << indentation << "#prolog for " << function->first << endl;
         epilogo << indentation << "#epilog for " << function->first << endl;
 
+        int extraParams = currentFunction->getParameterCountInStack();
+        if (extraParams > 0)
+            prologo << indentation << "addi $t0, $sp,"<< (count+extraParams)*4 << endl;
+        
+
         prologo << indentation << "addi $sp, $sp, -32 " << endl;
         for (int i = 0; i < 8; i++) {
             prologo << indentation << "sw $s" << i << ", " << (i*4) << "($sp)" << endl;
@@ -1192,7 +1201,7 @@ generateCode(DecoratedClass) {
 
         int offset = 0;
 
-        prologo << indentation << "addi $sp, $sp, -" << (toSaveRegisters.size()*4) << endl;
+        prologo << indentation << "addi $sp, $sp, -" << ((toSaveRegisters.size()+extraParams)*4) << endl;
 
         /* Save registers */
         list<string>::iterator regToSaveIterator = toSaveRegisters.begin();
@@ -1202,9 +1211,16 @@ generateCode(DecoratedClass) {
             offset += 4;
             regToSaveIterator++;
         }
+
+        for (int  i = 0; i < extraParams; i++) {
+            prologo << indentation << "lw $t1, " << (i - extraParams)*4 << "($t0)" << endl;
+            prologo << indentation << "sw $t1, " << offset << "($sp)" << endl;
+            offset += 4;
+        }
+
         prologo << indentation << "#end of prolog for " << function->first << endl;
         
-        epilogo << indentation << "addi $sp, $sp, " << (toSaveRegisters.size()*4) << endl;
+        epilogo << indentation << "addi $sp, $sp, " << ((toSaveRegisters.size()+extraParams)*4) << endl;
         //epilogo << indentation << "move $sp, $sp" << endl;
         epilogo << indentation << "lw $fp, 4($sp)" << endl;
         epilogo << indentation << "lw $ra, 0($sp)" << endl;
@@ -1218,19 +1234,6 @@ generateCode(DecoratedClass) {
         epilogo << indentation << "#end of epilog for " << function->first << endl;
 
         current_function_epilog = epilogo.str();
-
-        /*regToSaveIterator = toSaveRegisters.begin();
-        offset = 0;
-        while (regToSaveIterator != toSaveRegisters.end()) {
-            epilogo << indentation << "lw " << (*regToSaveIterator) << ", " << offset << "($sp)" << endl;
-            offset += 4;
-            regToSaveIterator++;
-        }
-
-        epilogo << indentation << "addi $sp, $sp, " << (toSaveRegisters.size()*4) << endl;
-        epilogo << indentation << "lw $fp, 4($sp)" << endl;
-        epilogo << indentation << "lw $ra, 0($sp)" << endl;
-        epilogo << indentation << "addi $sp, $sp, 8" << endl;*/
 
         RegisterManager::getInstance().freeAllRegisters();
 

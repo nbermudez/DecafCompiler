@@ -783,7 +783,7 @@ validateSemantics(LValueExpression) {
     return d_lvalue;
 }
 
-validateSemantics(MethodCallExpression) {    
+validateSemantics(MethodCallExpression) {
 	Function *function_def = getSymbolTableInstance()->getFunction(method_name);
 	if ( function_def == NULL ) {
 		ErrorHandler::getInstance().handleError(statement_line, "undefined method '" + method_name + "'");
@@ -1239,15 +1239,19 @@ validateSemantics(MethodDef) {
     return NULL;
 }
 
-validateSemantics(LocalVariableDefList) {
+validateSemantics(LocalVariableDefList) {	
 	context = ContextManager::getInstance().getContext(deepLevel);
 	currentFunction->activation_size += variable_names->size() * 4;
 	list<string>::iterator string_iterator = variable_names->begin();
 	while (string_iterator != variable_names->end()) {
 		string variable_name = (*string_iterator);
-		cout << "variable " << variable_name << " offset " << currentScopeSize << endl;
-		context->saveVarInfo(variable_name, new VarInfo(currentScopeSize, 4, variable_type));
-		currentScopeSize += 4;
+		if (ContextManager::getInstance().getOffset(deepLevel, variable_name) != -1) {
+			ErrorHandler::getInstance().handleError(line, "already defined variable " + variable_name);
+		} else {
+			cout << "variable " << variable_name << " offset " << currentScopeSize << endl;
+			context->saveVarInfo(variable_name, new VarInfo(currentScopeSize, 4, variable_type));
+			currentScopeSize += 4;
+		}
 		string_iterator++;		
 	}
 	return NULL;

@@ -31,6 +31,12 @@ setBody(Function) {
 	this->body = body;
 }
 
+%operation %virtual int getParameterCountInStack(Function *this);
+
+getParameterCountInStack(Function) {
+	return this->parameters.size()>4?this->parameters.size()-4:0;
+}
+
 %operation %virtual int getParameterRegsNeededCount(Function *this);
 
 getParameterRegsNeededCount(Function) {
@@ -49,7 +55,7 @@ offsetFromFp(Function) {
 	Variable *var = findParameter(parameterName);
 	if (var == NULL)
 		return -1;
-	int offset = parameters.size()>4?4:parameters.size();
+	int offset = parameters.size()/*>4?4:parameters.size()*/;
 	offset = -(offset - ((SimpleVariable*)var)->parameterId)*4;
 
 	return offset;

@@ -1,0 +1,64 @@
+class alltest {
+	int array[10];
+	int i_variable1;
+	boolean b_variable1;
+
+	boolean b_variable2 = false;
+	int i_variable2 = 10;
+
+	void printDefaultValues() {
+		print "i_variable1: ", i_variable1, "\n";
+		print "i_variable2: ", i_variable2, "\n";
+		print "b_variable1: ", b_variable1, "\n";
+		print "b_variable2: ", b_variable2, "\n";
+
+		int i;
+		for (i = 0; i < 10; i = i + 1) {
+			print "array[", i, "]=", array[i], "\n";
+		}
+	}
+
+	void fillArray() {
+		int i;
+		for (i = 0; i < 10; i = i + 1) {
+			read array[i];
+		}
+	}
+
+	int intFunction1() {
+		return 1+2*3/4%5;
+	}
+
+	boolean boolFunction1() {
+		return false;
+	}
+
+	boolean boolFunction2() {
+		int i;
+		for (i = 0; true; i = i + 1) {
+			return true;
+		}
+	}
+
+	void main() {
+		printDefaultValues();
+		fillArray();
+		printDefaultValues();
+
+		if (boolFunction1()) {
+			print "WTF!", "\n";
+		} else {
+			print "OK", "\n";
+		}
+
+		print intFunction1();
+		print 2==3;
+
+		int t;
+		t = 10;
+		while (t < 100) {
+			print "t: ", t, "\n";
+			t = t + 10;
+		}
+	}
+}
